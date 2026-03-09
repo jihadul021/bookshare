@@ -1,20 +1,22 @@
 require('dotenv').config();
 
 const express = require('express');
-const mongoose = require('mongoose');
+const authRoutes = require('./routes/authRoutes');
 const cors = require('cors');
+const dotenv = require('dotenv');
+const connectDB = require('./config/db');
+
+dotenv.config();
+connectDB();
 
 const app = express();
-app.use(cors());
+
+app.use(cors({ origin: process.env.CLIENT_URL }));
 app.use(express.json());
+app.use('/api/auth', authRoutes);
 
-mongoose.connect(process.env.MONGODB_URI)
-  .then(() => console.log('MongoDB connected'))
-  .catch(err => console.log(err));
-
-// endpoints
-app.get('/api/health', (req, res) =>{
-  res.json({status:'ok'});
+app.get('/', (req, res) => {
+  res.send('API working!');
 });
 
 const PORT = process.env.PORT || 3000;

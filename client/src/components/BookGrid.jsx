@@ -9,7 +9,7 @@ const ITEMS = [
     reviews: 2156,
     location: "Dhaka",
     owner: { name: "Sarah P.", joined: "2022", verified: true },
-    image: "https://images.unsplash.com/photo-150784272343-583ccbbfb3f1?auto=format&fit=crop&w=800&q=80",
+    image: "https://images-na.ssl-images-amazon.com/images/S/compressed.photo.goodreads.com/books/1490528560i/4671.jpg",
     description: "A classic American novel by F. Scott Fitzgerald about the Jazz Age and the pursuit of the American Dream. Beautifully written with complex characters and a compelling story.",
     features: ["Hardcover", "Complete", "Like New Condition", "By F. Scott Fitzgerald"]
   },
@@ -23,7 +23,7 @@ const ITEMS = [
     reviews: 1856,
     location: "Dhaka",
     owner: { name: "James M.", joined: "2023", verified: true },
-    image: "https://images.unsplash.com/photo-1506880018603-83d5b814b5a6?auto=format&fit=crop&w=800&q=80",
+    image: "https://images-na.ssl-images-amazon.com/images/S/compressed.photo.goodreads.com/books/1553383690i/2657.jpg",
     description: "Harper Lee's masterpiece about racial injustice in the American South. A powerful and moving story that has captivated readers for generations.",
     features: ["Paperback", "Complete", "Good Condition", "By Harper Lee"]
   },
@@ -37,7 +37,7 @@ const ITEMS = [
     reviews: 1267,
     location: "Dhaka",
     owner: { name: "Event Pro Rentals", joined: "2021", verified: true },
-    image: "https://images.unsplash.com/photo-1507842754769-fc8483f337b4?auto=format&fit=crop&w=800&q=80",
+    image: "https://m.media-amazon.com/images/I/713jIoMO3UL.jpg",
     description: "Yuval Noah Harari explores the history of humanity from the Stone Age to modern times. A fascinating and thought-provoking examination of how humans came to dominate the world.",
     features: ["Hardcover", "Complete", "Like New", "By Yuval Noah Harari"]
   },
@@ -51,7 +51,7 @@ const ITEMS = [
     reviews: 943,
     location: "Dhaka",
     owner: { name: "Alex R.", joined: "2023", verified: true },
-    image: "https://images.unsplash.com/photo-1478239143407-778047f1cfc2?auto=format&fit=crop&w=800&q=80",
+    image: "https://m.media-amazon.com/images/I/6113JHSrPUS._AC_UF894,1000_QL80_.jpg",
     description: "Carl Sagan's elegant exploration of the universe and our place in it. A journey through space and time that will expand your mind.",
     features: ["Hardcover", "Complete", "Like New Condition", "By Carl Sagan"]
   },
@@ -65,7 +65,7 @@ const ITEMS = [
     reviews: 1156,
     location: "Rajshahi",
     owner: { name: "Pro Readers", joined: "2020", verified: true },
-    image: "https://images.unsplash.com/photo-1507842739633-c7b4a4ad7d1a?auto=format&fit=crop&w=800&q=80",
+    image: "https://images-na.ssl-images-amazon.com/images/S/compressed.photo.goodreads.com/books/1333578746i/3869.jpg",
     description: "Stephen Hawking explains complex physics concepts in an accessible way. From the Big Bang to Black Holes - a mind-bending journey through space and time.",
     features: ["Paperback", "Complete", "Good Condition", "By Stephen Hawking"]
   },
@@ -79,7 +79,7 @@ const ITEMS = [
     reviews: 1045,
     location: "Tangail",
     owner: { name: "Maria C.", joined: "2022", verified: true },
-    image: "https://images.unsplash.com/photo-1512820790803-83ca734da794?auto=format&fit=crop&w=800&q=80",
+    image: "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcQ61f976vemTUnzE-U4lQyT4JnqlKEUO_oeTQ&s",
     description: "Matt Haig's enchanting novel about a woman who gets a chance to explore alternate versions of her life. Perfect for readers who love magical realism.",
     features: ["Hardcover", "Complete", "Like New", "By Matt Haig"]
   },
@@ -93,7 +93,7 @@ const ITEMS = [
     reviews: 2102,
     location: "Dhaka",
     owner: { name: "Fantasy Lovers", joined: "2021", verified: true },
-    image: "https://images.unsplash.com/photo-1507842499049-9f42e7b51ffe?auto=format&fit=crop&w=800&q=80",
+    image: "https://images-na.ssl-images-amazon.com/images/S/compressed.photo.goodreads.com/books/1546071216i/5907.jpg",
     description: "Tolkien's classic fantasy adventure about Bilbo Baggins and his unexpected journey. A timeless tale of courage and discovery.",
     features: ["Hardcover", "Complete", "Excellent Condition", "By J.R.R. Tolkien"]
   },
@@ -107,7 +107,7 @@ const ITEMS = [
     reviews: 987,
     location: "Sylhet",
     owner: { name: "Book Club Members", joined: "2023", verified: true },
-    image: "https://images.unsplash.com/photo-1507842754769-fc8483f337b4?auto=format&fit=crop&w=800&q=80",
+    image: "https://m.media-amazon.com/images/I/81WojUxbbFL._AC_UF1000,1000_QL80_.jpg",
     description: "Tara Westover's powerful memoir about her unconventional upbringing and journey to education. A testament to the transformative power of learning.",
     features: ["Hardcover", "Complete", "Like New", "By Tara Westover"]
   },
@@ -121,7 +121,7 @@ const ITEMS = [
     reviews: 1589,
     location: "Chittagong",
     owner: { name: "Delia Owens Books", joined: "2022", verified: true },
-    image: "https://images.unsplash.com/photo-1506880018603-83d5b814b5a6?auto=format&fit=crop&w=800&q=80",
+    image: "https://images-na.ssl-images-amazon.com/images/S/compressed.photo.goodreads.com/books/1582135294i/36809135.jpg",
     description: "A mesmerizing mystery woven with exquisite nature writing. A story of isolation, love, and survival set in the marshlands.",
     features: ["Paperback", "Complete", "Good Condition", "By Delia Owens"]
   }
