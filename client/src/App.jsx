@@ -8,6 +8,7 @@ import HowItWorks from './components/HowItWorks';
 import Footer from './components/Footer';
 import LoginPage from './components/LoginPage';
 import RegisterPage from './components/RegisterPage';
+import ProfilePage from './components/ProfilePage';
 
 const getStoredUser = () => {
   try {
@@ -30,7 +31,7 @@ function App() {
   // }
     const [activeCategory, setActiveCategory] = useState('all')
     const [selectedItem, setSelectedItem] = useState(null)
-    const [currentView, setCurrentView] = useState('home') // 'home' | 'detail' | 'login' | 'register'
+    const [currentView, setCurrentView] = useState('home') // 'home' | 'detail' | 'login' | 'register' | 'profile'
     const [currentUser, setCurrentUser] = useState(getStoredUser)
     
     const handleItemClick = (item) => {
@@ -56,6 +57,7 @@ function App() {
     }
 
     const handleAuthSuccess = (userData) => {
+      localStorage.setItem('bookshareUser', JSON.stringify(userData))
       setCurrentUser(userData)
     }
 
@@ -66,16 +68,18 @@ function App() {
     }
 
     const handleMyProfile = () => {
-      handleBack()
+      if (!currentUser?.token) {
+        handleShowLogin()
+        return
+      }
+
+      setSelectedItem(null)
+      setCurrentView('profile')
+      window.scrollTo(0, 0)
     }
 
 
   return (
-    
-    // <div>
-    //     <button onClick={checkHealth}>Check Health</button>
-    //     {health && <p>{health}</p>}
-    // </div>
         <div className="min-h-screen bg-gray-50">
           <Navbar
             onLogoClick={handleBack}
@@ -102,6 +106,14 @@ function App() {
                   onSwitchToRegister={handleShowRegister}
                   onBackHome={handleBack}
                   onAuthSuccess={handleAuthSuccess}
+                />
+            ) : currentView === 'profile' ? (
+                <ProfilePage
+                  token={currentUser?.token}
+                  initialUser={currentUser}
+                  onBackHome={handleBack}
+                  onRequireLogin={handleShowLogin}
+                  onProfileUpdated={handleAuthSuccess}
                 />
             ) : (
                 <RegisterPage

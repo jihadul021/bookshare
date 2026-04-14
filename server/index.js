@@ -5,6 +5,7 @@ const authRoutes = require('./routes/authRoutes');
 const cors = require('cors');
 const dotenv = require('dotenv');
 const connectDB = require('./config/db');
+const protect = require('./middleware/authMiddleware');
 
 dotenv.config();
 connectDB();
@@ -17,6 +18,10 @@ app.use('/api/auth', authRoutes);
 
 app.get('/', (req, res) => {
   res.send('API working!');
+});
+
+app.get('/api/test-auth', protect, (req, res) => {
+  res.json({ message: 'Protected route works!', user: req.user });
 });
 
 const PORT = process.env.PORT || 3000;

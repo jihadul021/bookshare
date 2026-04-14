@@ -5,6 +5,7 @@ const generateToken = (id) => {
   return jwt.sign({ id }, process.env.JWT_SECRET, { expiresIn: '30d' });
 };
 
+// Register 
 exports.register = async (req, res) => {
   try {
     const { name, email, password, gender} = req.body;
@@ -46,6 +47,7 @@ exports.register = async (req, res) => {
   }
 };
 
+// Login 
 exports.login = async (req, res) => {
   try {
     const { email, password } = req.body;
@@ -65,6 +67,75 @@ exports.login = async (req, res) => {
       joinDate: user.joinDate,
       token: generateToken(user._id)
     }); 
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+};
+
+
+// Get user profile
+exports.getMe = async (req, res) => {
+  try {
+    const user = await User.findById(req.user._id).select('-password');
+    res.json(user);
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+};
+
+// Update user profile
+exports.updateProfile = async (req, res) => {
+  try {
+    const { name, phone, address, profilePicture, email, gender, password } = req.body;
+
+    const user = await User.findById(req.user._id);
+    if (!user) return res.status(404).json({ message: 'User not found' });
+
+    const normalizedEmail = typeof email === 'string' ? email.trim().toLowerCase() : undefined;
+    const normalizedName = typeof name === 'string' ? name.trim() : undefined;
+
+    if (typeof normalizedName !== 'undefined' && !normalizedName) {
+      return res.status(400).json({ message: 'Name is required' });
+    }
+
+    if (typeof normalizedEmail !== 'undefined' && !normalizedEmail) {
+      return res.status(400).json({ message: 'Email is required' });
+    }
+
+    if (normalizedEmail && normalizedEmail !== user.email) {
+      const emailExists = await User.findOne({ email: normalizedEmail });
+      if (emailExists) return res.status(400).json({ message: 'Email already in use' });
+      user.email = normalizedEmail;
+    }
+
+    if (normalizedName) user.name = normalizedName;
+    if (typeof phone !== 'undefined') user.phone = phone ? phone.trim() : '';
+    if (typeof address !== 'undefined') user.address = address ? address.trim() : '';
+    if (typeof profilePicture !== 'undefined') user.profilePicture = profilePicture || '';
+    if (typeof gender !== 'undefined') user.gender = gender;
+
+    if (password) {
+      if (password.length < 6) {
+        return res.status(400).json({ message: 'Password must be at least 6 characters' });
+      }
+      user.password = password;
+    }
+
+    const updated = await user.save();
+    res.json({
+      _id: updated._id,
+      name: updated.name,
+      gender: updated.gender,
+      email: updated.email,
+      phone: updated.phone,
+      address: updated.address,
+      profilePicture: updated.profilePicture,
+      joinDate: updated.joinDate,
+      role: updated.role,
+      isverified: updated.isverified,
+      createdAt: updated.createdAt,
+      updatedAt: updated.updatedAt
+    });
   } catch (error) {
     res.status(500).json({ message: error.message });
   }
