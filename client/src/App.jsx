@@ -9,6 +9,7 @@ import Footer from './components/Footer';
 import LoginPage from './components/LoginPage';
 import RegisterPage from './components/RegisterPage';
 import ProfilePage from './components/ProfilePage';
+import AddBookPage from './components/AddBookPage';
 
 const getStoredUser = () => {
   try {
@@ -31,7 +32,7 @@ function App() {
   // }
     const [activeCategory, setActiveCategory] = useState('all')
     const [selectedItem, setSelectedItem] = useState(null)
-    const [currentView, setCurrentView] = useState('home') // 'home' | 'detail' | 'login' | 'register' | 'profile'
+    const [currentView, setCurrentView] = useState('home') // 'home' | 'detail' | 'login' | 'register' | 'profile' | 'addbook'
     const [currentUser, setCurrentUser] = useState(getStoredUser)
     
     const handleItemClick = (item) => {
@@ -78,6 +79,25 @@ function App() {
       window.scrollTo(0, 0)
     }
 
+    const handleAddBook = () => {
+      if (!currentUser?.token) {
+        handleShowLogin()
+        return
+      }
+      setCurrentView('addbook')
+      window.scrollTo(0, 0)
+    }
+
+    const handleBackFromAddBook = () => {
+      setCurrentView('profile')
+      window.scrollTo(0, 0)
+    }
+
+    const handleBookAdded = (book) => {
+      setCurrentView('profile')
+      window.scrollTo(0, 0)
+    }
+
 
   return (
         <div className="min-h-screen bg-gray-50">
@@ -107,6 +127,13 @@ function App() {
                   onBackHome={handleBack}
                   onAuthSuccess={handleAuthSuccess}
                 />
+            ) : currentView === 'addbook' ? (
+                <AddBookPage
+                  token={currentUser?.token}
+                  onBackHome={handleBackFromAddBook}
+                  onBookAdded={handleBookAdded}
+                  onRequireLogin={handleShowLogin}
+                />
             ) : currentView === 'profile' ? (
                 <ProfilePage
                   token={currentUser?.token}
@@ -114,6 +141,7 @@ function App() {
                   onBackHome={handleBack}
                   onRequireLogin={handleShowLogin}
                   onProfileUpdated={handleAuthSuccess}
+                  onAddBook={handleAddBook}
                 />
             ) : (
                 <RegisterPage
