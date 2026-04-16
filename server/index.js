@@ -8,6 +8,8 @@ const connectDB = require('./config/db');
 const protect = require('./middleware/authMiddleware');
 
 const bookRoutes = require('./routes/bookRoutes');
+const cartRoutes = require('./routes/cartRoutes');
+const wishlistRoutes = require('./routes/wishlistRoutes');
 
 
 dotenv.config();
@@ -19,6 +21,8 @@ app.use(cors({ origin: process.env.CLIENT_URL }));
 app.use(express.json());
 app.use('/api/auth', authRoutes);
 app.use('/api/books', bookRoutes);
+app.use('/api/cart', cartRoutes);
+app.use('/api/wishlist', wishlistRoutes);
 
 app.get('/', (req, res) => {
   res.send('API working!');

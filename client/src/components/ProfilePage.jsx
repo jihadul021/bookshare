@@ -7,7 +7,8 @@ export default function ProfilePage({
   onBackHome,
   onRequireLogin,
   onProfileUpdated,
-  onAddBook
+  onAddBook,
+  onViewMyBooks
 }) {
   const [user, setUser] = useState(initialUser || {})
   const [isEditing, setIsEditing] = useState(false)
@@ -292,6 +293,15 @@ export default function ProfilePage({
                     className="w-full bg-orange-500 hover:bg-orange-600 text-white font-semibold py-2 rounded-lg transition-colors"
                   >
                     Edit Profile
+                  </button>
+                  <button
+                    onClick={onViewMyBooks}
+                    className="w-full bg-blue-500 hover:bg-blue-600 text-white font-semibold py-2 rounded-lg transition-colors flex items-center justify-center"
+                  >
+                    <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6.253v13m0-13C6.5 6.253 2 10.998 2 17s4.5 10.747 10 10.747c5.5 0 10-4.998 10-10.747S17.5 6.253 12 6.253z" />
+                    </svg>
+                    View My Books
                   </button>
                   <button
                     onClick={onAddBook}

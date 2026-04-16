@@ -1,133 +1,35 @@
-const ITEMS = [
-  {
-    id: 1,
-    name: "The Great Gatsby",
-    writer: "F. Scott Fitzgerald",
-    category: "fiction",
-    pricePerDay: 12,
-    rating: 4.9,
-    reviews: 2156,
-    location: "Dhaka",
-    owner: { name: "Sarah P.", joined: "2022", verified: true },
-    image: "https://images-na.ssl-images-amazon.com/images/S/compressed.photo.goodreads.com/books/1490528560i/4671.jpg",
-    description: "A classic American novel by F. Scott Fitzgerald about the Jazz Age and the pursuit of the American Dream. Beautifully written with complex characters and a compelling story.",
-    features: ["Hardcover", "Complete", "Like New Condition", "By F. Scott Fitzgerald"]
-  },
-  {
-    id: 2,
-    name: "To Kill a Mockingbird",
-    writer: "Harper Lee",
-    category: "fiction",
-    pricePerDay: 10,
-    rating: 4.8,
-    reviews: 1856,
-    location: "Dhaka",
-    owner: { name: "James M.", joined: "2023", verified: true },
-    image: "https://images-na.ssl-images-amazon.com/images/S/compressed.photo.goodreads.com/books/1553383690i/2657.jpg",
-    description: "Harper Lee's masterpiece about racial injustice in the American South. A powerful and moving story that has captivated readers for generations.",
-    features: ["Paperback", "Complete", "Good Condition", "By Harper Lee"]
-  },
-  {
-    id: 3,
-    name: "Sapiens: A Brief History of Humankind",
-    writer: "Yuval Noah Harari",
-    category: "nonFiction",
-    pricePerDay: 15,
-    rating: 4.7,
-    reviews: 1267,
-    location: "Dhaka",
-    owner: { name: "Event Pro Rentals", joined: "2021", verified: true },
-    image: "https://m.media-amazon.com/images/I/713jIoMO3UL.jpg",
-    description: "Yuval Noah Harari explores the history of humanity from the Stone Age to modern times. A fascinating and thought-provoking examination of how humans came to dominate the world.",
-    features: ["Hardcover", "Complete", "Like New", "By Yuval Noah Harari"]
-  },
-  {
-    id: 4,
-    name: "Cosmos: A Spacetime Odyssey",
-    writer: "Carl Sagan",
-    category: "science",
-    pricePerDay: 14,
-    rating: 4.9,
-    reviews: 943,
-    location: "Dhaka",
-    owner: { name: "Alex R.", joined: "2023", verified: true },
-    image: "https://m.media-amazon.com/images/I/6113JHSrPUS._AC_UF894,1000_QL80_.jpg",
-    description: "Carl Sagan's elegant exploration of the universe and our place in it. A journey through space and time that will expand your mind.",
-    features: ["Hardcover", "Complete", "Like New Condition", "By Carl Sagan"]
-  },
-  {
-    id: 5,
-    name: "A Brief History of Time",
-    writer: "Stephen Hawking",
-    category: "science",
-    pricePerDay: 12,
-    rating: 4.8,
-    reviews: 1156,
-    location: "Rajshahi",
-    owner: { name: "Pro Readers", joined: "2020", verified: true },
-    image: "https://images-na.ssl-images-amazon.com/images/S/compressed.photo.goodreads.com/books/1333578746i/3869.jpg",
-    description: "Stephen Hawking explains complex physics concepts in an accessible way. From the Big Bang to Black Holes - a mind-bending journey through space and time.",
-    features: ["Paperback", "Complete", "Good Condition", "By Stephen Hawking"]
-  },
-  {
-    id: 6,
-    name: "The Midnight Library",
-    writer: "Matt Haig",
-    category: "fantasy",
-    pricePerDay: 11,
-    rating: 4.9,
-    reviews: 1045,
-    location: "Tangail",
-    owner: { name: "Maria C.", joined: "2022", verified: true },
-    image: "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcQ61f976vemTUnzE-U4lQyT4JnqlKEUO_oeTQ&s",
-    description: "Matt Haig's enchanting novel about a woman who gets a chance to explore alternate versions of her life. Perfect for readers who love magical realism.",
-    features: ["Hardcover", "Complete", "Like New", "By Matt Haig"]
-  },
-  {
-    id: 7,
-    name: "The Hobbit",
-    writer: "J.R.R. Tolkien",
-    category: "fantasy",
-    pricePerDay: 13,
-    rating: 4.7,
-    reviews: 2102,
-    location: "Dhaka",
-    owner: { name: "Fantasy Lovers", joined: "2021", verified: true },
-    image: "https://images-na.ssl-images-amazon.com/images/S/compressed.photo.goodreads.com/books/1546071216i/5907.jpg",
-    description: "Tolkien's classic fantasy adventure about Bilbo Baggins and his unexpected journey. A timeless tale of courage and discovery.",
-    features: ["Hardcover", "Complete", "Excellent Condition", "By J.R.R. Tolkien"]
-  },
-  {
-    id: 8,
-    name: "Educated",
-    writer: "Tara Westover",
-    category: "biography",
-    pricePerDay: 13,
-    rating: 4.7,
-    reviews: 987,
-    location: "Sylhet",
-    owner: { name: "Book Club Members", joined: "2023", verified: true },
-    image: "https://m.media-amazon.com/images/I/81WojUxbbFL._AC_UF1000,1000_QL80_.jpg",
-    description: "Tara Westover's powerful memoir about her unconventional upbringing and journey to education. A testament to the transformative power of learning.",
-    features: ["Hardcover", "Complete", "Like New", "By Tara Westover"]
-  },
-  {
-    id: 9,
-    name: "Where the Crawdads Sing",
-    writer: "Delia Owens",
-    category: "mystery",
-    pricePerDay: 12,
-    rating: 4.8,
-    reviews: 1589,
-    location: "Chittagong",
-    owner: { name: "Delia Owens Books", joined: "2022", verified: true },
-    image: "https://images-na.ssl-images-amazon.com/images/S/compressed.photo.goodreads.com/books/1582135294i/36809135.jpg",
-    description: "A mesmerizing mystery woven with exquisite nature writing. A story of isolation, love, and survival set in the marshlands.",
-    features: ["Paperback", "Complete", "Good Condition", "By Delia Owens"]
-  }
-]
+import { useState, useEffect } from 'react'
+import api from '../api'
 
-function ItemCard({ item, onItemClick }) {
+function ItemCard({ item, onItemClick, token, onAddToCart, onAddToWishlist, isInCart, isInWishlist }) {
+  const [showCartAdded, setShowCartAdded] = useState(false)
+
+  const handleAddToCart = async (e) => {
+    e.stopPropagation()
+    if (!token) {
+      alert('Please login to add to cart')
+      return
+    }
+    const wasInCart = isInCart
+    const success = await onAddToCart(item._id)
+    if (success && !wasInCart) {
+      setShowCartAdded(true)
+      setTimeout(() => setShowCartAdded(false), 2000)
+    }
+  }
+
+  const handleAddToWishlist = async (e) => {
+    e.stopPropagation()
+    if (!token) {
+      alert('Please login to add to wishlist')
+      return
+    }
+    await onAddToWishlist(item._id)
+  }
+
+  const ratingValue = item.rating || 0
+  const reviewCount = item.numReviews || 0
+
   return (
     <div
       className="group bg-white rounded-2xl border border-gray-200 overflow-hidden shadow-sm hover:shadow-xl transition-all duration-300 cursor-pointer flex flex-col"
@@ -135,45 +37,232 @@ function ItemCard({ item, onItemClick }) {
     >
       {/* Image */}
       <div className="relative aspect-[4/3] overflow-hidden bg-gray-100">
-        <img
-          src={item.image}
-          alt={item.name}
-          className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
-        />
+        {item.images && item.images.length > 0 ? (
+          <img
+            src={item.images[0]}
+            alt={item.title}
+            className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+          />
+        ) : (
+          <div className="w-full h-full flex items-center justify-center text-gray-400 bg-gray-200">
+            No image
+          </div>
+        )}
       </div>
 
       {/* Info */}
       <div className="p-5 flex flex-col flex-grow">
         <h3 className="font-bold text-gray-900 leading-tight mb-2 group-hover:text-orange-600 transition-colors">
-          {item.name}
+          {item.title}
         </h3>
-        <p className="text-gray-500 text-sm mb-3">by {item.writer}</p>
+        <p className="text-gray-500 text-sm mb-3">by {item.author}</p>
 
-        <div className="flex items-center text-sm text-gray-500 mb-3">
-          <span className="text-amber-400 mr-1">★</span>
-          <span className="font-medium text-gray-900">{item.rating}</span>
-          <span className="ml-1">({item.reviews})</span>
-          <span className="mx-2">•</span>
-          <span>{item.location}</span>
+        {/* Rating */}
+        <div className="flex items-center gap-2 mb-3">
+          <div className="flex items-center">
+            <span className="text-amber-400">★</span>
+            <span className="font-semibold text-gray-900 text-sm ml-1">{ratingValue.toFixed(1)}</span>
+          </div>
+          <span className="text-gray-400 text-xs">({reviewCount})</span>
         </div>
 
-        <div className="mt-auto pt-4 border-t border-gray-100 flex justify-between items-center">
-          <div>
-            <span className="text-lg font-extrabold text-gray-900">${item.pricePerDay}</span>
-          </div>
-          <div className="w-8 h-8 rounded-full bg-orange-100 flex items-center justify-center text-orange-700 font-bold text-xs border border-orange-200">
-            {item.owner.name.charAt(0)}
-          </div>
+        {/* Details */}
+        <div className="text-sm text-gray-600 mb-4 flex-grow">
+          <p className="mb-1">📍 {item.location}</p>
+          <p>Condition: <span className="capitalize">{item.condition}</span></p>
+        </div>
+
+        {/* Price */}
+        <div className="mb-4 border-t border-gray-100 pt-4">
+          <p className="text-2xl font-bold text-orange-600">৳{item.price}</p>
+        </div>
+
+        {/* Buttons */}
+        <div className="flex gap-2">
+          <button
+            onClick={handleAddToCart}
+            className={`flex-1 flex items-center justify-center gap-2 py-2 px-3 rounded-lg font-semibold text-sm transition-all ${
+              showCartAdded
+                ? 'bg-green-500 text-white'
+                : isInCart
+                ? 'bg-red-100 text-red-600 hover:bg-red-200'
+                : 'bg-orange-500 text-white hover:bg-orange-600'
+            }`}
+          >
+            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d={
+                showCartAdded
+                  ? "M5 13l4 4L19 7"
+                  : isInCart
+                  ? "M6 18L18 6M6 6l12 12"
+                  : "M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2 8m10 0l2 8m-12 0h12"
+              } />
+            </svg>
+            {showCartAdded ? 'Added!' : isInCart ? 'Remove' : 'Cart'}
+          </button>
+          <button
+            onClick={handleAddToWishlist}
+            className={`flex items-center justify-center py-2 px-3 rounded-lg font-semibold transition-all ${
+              isInWishlist
+                ? 'bg-red-500 text-white'
+                : 'border-2 border-gray-300 text-gray-600 hover:border-red-400'
+            }`}
+          >
+            <svg className={`w-5 h-5 ${isInWishlist ? 'fill-current' : ''}`} fill={isInWishlist ? 'currentColor' : 'none'} stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" />
+            </svg>
+          </button>
         </div>
       </div>
     </div>
   )
 }
 
-function BookGrid({ activeCategory, onItemClick }) {
-  const filteredItems = activeCategory === 'all'
-    ? ITEMS
-    : ITEMS.filter(item => item.category === activeCategory)
+function BookGrid({ activeCategory, onItemClick, token, onShowCart, onShowWishlist }) {
+  const [books, setBooks] = useState([])
+  const [isLoading, setIsLoading] = useState(false)
+  const [error, setError] = useState('')
+  const [page, setPage] = useState(1)
+  const [hasMore, setHasMore] = useState(true)
+  const [cart, setCart] = useState([])
+  const [wishlist, setWishlist] = useState([])
+
+  useEffect(() => {
+    setPage(1)
+    setBooks([])
+    setHasMore(true)
+  }, [activeCategory])
+
+  useEffect(() => {
+    if (page === 1) {
+      fetchBooks()
+    } else {
+      appendBooks()
+    }
+  }, [page])
+
+  useEffect(() => {
+    if (token) {
+      fetchUserCart()
+      fetchUserWishlist()
+    }
+  }, [token])
+
+  const fetchBooks = async () => {
+    try {
+      setIsLoading(true)
+      setError('')
+      const params = { page: 1, limit: 10 }
+      if (activeCategory && activeCategory !== 'all') {
+        params.category = activeCategory
+      }
+      const response = await api.get('/api/books', { params })
+      setBooks(response.data.books || [])
+      setHasMore(response.data.pagination.hasMore)
+    } catch (err) {
+      setError(err.response?.data?.message || 'Failed to load books')
+    } finally {
+      setIsLoading(false)
+    }
+  }
+
+  const appendBooks = async () => {
+    try {
+      setIsLoading(true)
+      const params = { page, limit: 10 }
+      if (activeCategory && activeCategory !== 'all') {
+        params.category = activeCategory
+      }
+      const response = await api.get('/api/books', { params })
+      setBooks(prev => [...prev, ...(response.data.books || [])])
+      setHasMore(response.data.pagination.hasMore)
+    } catch (err) {
+      setError(err.response?.data?.message || 'Failed to load more books')
+    } finally {
+      setIsLoading(false)
+    }
+  }
+
+  const fetchUserCart = async () => {
+    try {
+      const response = await api.get('/api/cart', {
+        headers: { Authorization: `Bearer ${token}` }
+      })
+      setCart(response.data.items || [])
+    } catch (err) {
+      console.error('Failed to fetch cart:', err)
+    }
+  }
+
+  const fetchUserWishlist = async () => {
+    try {
+      const response = await api.get('/api/wishlist', {
+        headers: { Authorization: `Bearer ${token}` }
+      })
+      setWishlist(response.data.books || [])
+    } catch (err) {
+      console.error('Failed to fetch wishlist:', err)
+    }
+  }
+
+  const handleAddToCart = async (bookId) => {
+    if (!token) {
+      alert('Please login to add to cart')
+      return
+    }
+
+    try {
+      const isInCart = cart.some(item => item.book._id === bookId)
+      if (isInCart) {
+        await api.post(
+          '/api/cart/remove',
+          { bookId },
+          { headers: { Authorization: `Bearer ${token}` } }
+        )
+      } else {
+        await api.post(
+          '/api/cart/add',
+          { bookId, quantity: 1 },
+          { headers: { Authorization: `Bearer ${token}` } }
+        )
+      }
+      fetchUserCart()
+      return true
+    } catch (err) {
+      alert(err.response?.data?.message || 'Failed to update cart')
+      return false
+    }
+  }
+
+  const handleAddToWishlist = async (bookId) => {
+    if (!token) {
+      alert('Please login to add to wishlist')
+      return
+    }
+
+    try {
+      const isAlreadyInWishlist = wishlist.some(item => item.book._id === bookId)
+      if (isAlreadyInWishlist) {
+        await api.post(
+          '/api/wishlist/remove',
+          { bookId },
+          { headers: { Authorization: `Bearer ${token}` } }
+        )
+      } else {
+        await api.post(
+          '/api/wishlist/add',
+          { bookId },
+          { headers: { Authorization: `Bearer ${token}` } }
+        )
+      }
+      fetchUserWishlist()
+    } catch (err) {
+      alert(err.response?.data?.message || 'Failed to update wishlist')
+    }
+  }
+
+  const isBookInCart = (bookId) => cart.some(item => item.book._id === bookId)
+  const isBookInWishlist = (bookId) => wishlist.some(item => item.book._id === bookId)
 
   return (
     <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pb-20">
@@ -182,11 +271,63 @@ function BookGrid({ activeCategory, onItemClick }) {
         <p className="text-gray-500 mt-1">Exchange, buy, or donate books in your community</p>
       </div>
 
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-        {filteredItems.map((item) => (
-          <ItemCard key={item.id} item={item} onItemClick={onItemClick} />
-        ))}
-      </div>
+      {error && (
+        <div className="mb-8 p-4 bg-red-50 border border-red-200 rounded-lg text-red-800">
+          {error}
+        </div>
+      )}
+
+      {books.length === 0 && !isLoading ? (
+        <div className="text-center py-12">
+          <p className="text-gray-500 text-lg">No books available</p>
+        </div>
+      ) : (
+        <>
+          {/* Books Grid */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 mb-12">
+            {books.map(book => (
+              <ItemCard
+                key={book._id}
+                item={book}
+                onItemClick={onItemClick}
+                token={token}
+                onAddToCart={handleAddToCart}
+                onAddToWishlist={handleAddToWishlist}
+                isInCart={isBookInCart(book._id)}
+                isInWishlist={isBookInWishlist(book._id)}
+              />
+            ))}
+          </div>
+
+          {/* See More Button */}
+          {hasMore && (
+            <div className="flex justify-center mb-12">
+              <button
+                onClick={() => setPage(prev => prev + 1)}
+                disabled={isLoading}
+                className="flex items-center justify-center gap-2 bg-orange-500 hover:bg-orange-600 disabled:bg-gray-400 text-white font-bold py-3 px-8 rounded-xl transition-colors"
+              >
+                {isLoading ? (
+                  <>
+                    <svg className="animate-spin h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
+                    </svg>
+                    Loading...
+                  </>
+                ) : (
+                  <>
+                    See More Books
+                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 14l-7 7m0 0l-7-7m7 7V3" />
+                    </svg>
+                  </>
+                )}
+              </button>
+            </div>
+          )}
+        </>
+      )}
     </section>
   )
 }

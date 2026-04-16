@@ -1,19 +1,16 @@
 const CATEGORIES = [
   { id: 'all', label: 'All' },
   { id: 'fiction', label: 'Fiction' },
-  { id: 'nonFiction', label: 'Non-Fiction' },
-  { id: 'science', label: 'Science' },
-  { id: 'history', label: 'History' },
-  { id: 'biography', label: 'Biography' },
-  { id: 'selfHelp', label: 'Self-Help' },
+  { id: 'non-fiction', label: 'Non-Fiction' },
   { id: 'mystery', label: 'Mystery' },
-  { id: 'academic', label: 'Academic' },
-  { id: 'technology', label: 'Technology' },
-  { id: 'children', label: 'Children' },
-  { id: 'horror', label: 'Horror' },
   { id: 'romance', label: 'Romance' },
+  { id: 'science', label: 'Science' },
+  { id: 'technology', label: 'Technology' },
+  { id: 'biography', label: 'Biography' },
+  { id: 'history', label: 'History' },
+  { id: 'self-development', label: 'Self-Development' },
+  { id: 'education', label: 'Education' },
   { id: 'other', label: 'Other' },
-
 ]
 
 function Categories({ activeCategory, setActiveCategory }) {

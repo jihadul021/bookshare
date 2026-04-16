@@ -10,6 +10,9 @@ import LoginPage from './components/LoginPage';
 import RegisterPage from './components/RegisterPage';
 import ProfilePage from './components/ProfilePage';
 import AddBookPage from './components/AddBookPage';
+import MyBooksPage from './components/MyBooksPage';
+import CartPage from './components/CartPage';
+import WishlistPage from './components/WishlistPage';
 
 const getStoredUser = () => {
   try {
@@ -32,7 +35,7 @@ function App() {
   // }
     const [activeCategory, setActiveCategory] = useState('all')
     const [selectedItem, setSelectedItem] = useState(null)
-    const [currentView, setCurrentView] = useState('home') // 'home' | 'detail' | 'login' | 'register' | 'profile' | 'addbook'
+    const [currentView, setCurrentView] = useState('home') // 'home' | 'detail' | 'login' | 'register' | 'profile' | 'addbook' | 'mybooks' | 'cart' | 'wishlist'
     const [currentUser, setCurrentUser] = useState(getStoredUser)
     
     const handleItemClick = (item) => {
@@ -98,6 +101,48 @@ function App() {
       window.scrollTo(0, 0)
     }
 
+    const handleViewCart = () => {
+      if (!currentUser?.token) {
+        handleShowLogin()
+        return
+      }
+      setCurrentView('cart')
+      window.scrollTo(0, 0)
+    }
+
+    const handleBackFromCart = () => {
+      setCurrentView('home')
+      window.scrollTo(0, 0)
+    }
+
+    const handleViewWishlist = () => {
+      if (!currentUser?.token) {
+        handleShowLogin()
+        return
+      }
+      setCurrentView('wishlist')
+      window.scrollTo(0, 0)
+    }
+
+    const handleBackFromWishlist = () => {
+      setCurrentView('home')
+      window.scrollTo(0, 0)
+    }
+
+    const handleViewMyBooks = () => {
+      if (!currentUser?.token) {
+        handleShowLogin()
+        return
+      }
+      setCurrentView('mybooks')
+      window.scrollTo(0, 0)
+    }
+
+    const handleBackFromMyBooks = () => {
+      setCurrentView('profile')
+      window.scrollTo(0, 0)
+    }
+
 
   return (
         <div className="min-h-screen bg-gray-50">
@@ -108,19 +153,22 @@ function App() {
             onRegisterClick={handleShowRegister}
             onLogoutClick={handleLogout}
             onMyProfileClick={handleMyProfile}
+            onCartClick={handleViewCart}
+            onWishlistClick={handleViewWishlist}
             isLoggedIn={Boolean(currentUser?.token)}
             userName={currentUser?.name}
             profilePicture={currentUser?.profilePicture}
+            token={currentUser?.token}
           />
           {currentView === 'home' ? (
         <>
           <Banner />
           <Categories activeCategory={activeCategory} setActiveCategory={setActiveCategory} />
-          <BookGrid activeCategory={activeCategory} onItemClick={handleItemClick} />      
+          <BookGrid activeCategory={activeCategory} onItemClick={handleItemClick} token={currentUser?.token} onShowCart={handleViewCart} onShowWishlist={handleViewWishlist} />      
           <HowItWorks/>  
         </>
             ) : currentView === 'detail' ? (
-                <ProductDetails item={selectedItem} onBack={handleBack} />
+                <ProductDetails item={selectedItem} onBack={handleBack} token={currentUser?.token} />
             ) : currentView === 'login' ? (
                 <LoginPage
                   onSwitchToRegister={handleShowRegister}
@@ -134,6 +182,12 @@ function App() {
                   onBookAdded={handleBookAdded}
                   onRequireLogin={handleShowLogin}
                 />
+            ) : currentView === 'mybooks' ? (
+                <MyBooksPage
+                  token={currentUser?.token}
+                  onBackHome={handleBackFromMyBooks}
+                  onRequireLogin={handleShowLogin}
+                />
             ) : currentView === 'profile' ? (
                 <ProfilePage
                   token={currentUser?.token}
@@ -142,6 +196,19 @@ function App() {
                   onRequireLogin={handleShowLogin}
                   onProfileUpdated={handleAuthSuccess}
                   onAddBook={handleAddBook}
+                  onViewMyBooks={handleViewMyBooks}
+                />
+            ) : currentView === 'cart' ? (
+                <CartPage
+                  token={currentUser?.token}
+                  onBack={handleBackFromCart}
+                  onRequireLogin={handleShowLogin}
+                />
+            ) : currentView === 'wishlist' ? (
+                <WishlistPage
+                  token={currentUser?.token}
+                  onBack={handleBackFromWishlist}
+                  onRequireLogin={handleShowLogin}
                 />
             ) : (
                 <RegisterPage

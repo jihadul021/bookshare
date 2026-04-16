@@ -1,4 +1,5 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
+import api from '../api'
 
 function Navbar({
   onLogoClick,
@@ -7,16 +8,40 @@ function Navbar({
   onRegisterClick,
   onLogoutClick,
   onMyProfileClick,
+  onCartClick,
+  onWishlistClick,
   isLoggedIn,
   userName,
-  profilePicture
+  profilePicture,
+  token
 }) {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false)
   const [isDesktopProfileOpen, setIsDesktopProfileOpen] = useState(false)
   const [searchQuery, setSearchQuery] = useState('')
+  const [cartCount, setCartCount] = useState(0)
+  const [wishlistCount, setWishlistCount] = useState(0)
   const profileInitial = userName?.trim()?.charAt(0)?.toUpperCase() || 'U'
   const hasProfilePicture =
     Boolean(profilePicture?.trim()) && !profilePicture.includes('google.com/url?')
+
+  useEffect(() => {
+    if (token) {
+      fetchCounts()
+    }
+  }, [token])
+
+  const fetchCounts = async () => {
+    try {
+      const [cartRes, wishlistRes] = await Promise.all([
+        api.get('/api/cart', { headers: { Authorization: `Bearer ${token}` } }),
+        api.get('/api/wishlist', { headers: { Authorization: `Bearer ${token}` } })
+      ])
+      setCartCount(cartRes.data.items?.length || 0)
+      setWishlistCount(wishlistRes.data.books?.length || 0)
+    } catch (err) {
+      console.error('Failed to fetch counts:', err)
+    }
+  }
   
   const handleMobileAction = (action) => {
     action?.()
@@ -66,18 +91,27 @@ function Navbar({
               </button>
               
               {/* Favorites */}
-              <button className="text-gray-600 hover:text-red-500 transition-colors">
+              <button onClick={onWishlistClick} className="text-gray-600 hover:text-red-500 transition-colors relative">
                 <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" />
                 </svg>
+                {wishlistCount > 0 && (
+                  <span className="absolute top-0 right-0 inline-flex items-center justify-center px-2 py-1 text-xs font-bold leading-none text-white transform translate-x-1/2 -translate-y-1/2 bg-red-500 rounded-full">
+                    {wishlistCount}
+                  </span>
+                )}
               </button>
 
               {/* Cart */}
-              <button className="text-gray-600 hover:text-orange-500 transition-colors relative">
+              <button onClick={onCartClick} className="text-gray-600 hover:text-orange-500 transition-colors relative">
                 <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2 8m10 0l2 8m-12 0h12" />
                 </svg>
-                <span className="absolute top-0 right-0 inline-flex items-center justify-center px-2 py-1 text-xs font-bold leading-none text-white transform translate-x-1/2 -translate-y-1/2 bg-orange-500 rounded-full">0</span>
+                {cartCount > 0 && (
+                  <span className="absolute top-0 right-0 inline-flex items-center justify-center px-2 py-1 text-xs font-bold leading-none text-white transform translate-x-1/2 -translate-y-1/2 bg-orange-500 rounded-full">
+                    {cartCount}
+                  </span>
+                )}
               </button>
 
               {isLoggedIn ? (
@@ -137,16 +171,25 @@ function Navbar({
 
             {/* Mobile Top Actions */}
             <div className="md:hidden flex items-center gap-3">
-              <button className="text-gray-600 hover:text-red-500 transition-colors">
+              <button onClick={onWishlistClick} className="text-gray-600 hover:text-red-500 transition-colors relative">
                 <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" />
                 </svg>
+                {wishlistCount > 0 && (
+                  <span className="absolute top-0 right-0 inline-flex items-center justify-center px-2 py-1 text-xs font-bold leading-none text-white transform translate-x-1/2 -translate-y-1/2 bg-red-500 rounded-full">
+                    {wishlistCount}
+                  </span>
+                )}
               </button>
-              <button className="text-gray-600 hover:text-orange-500 transition-colors relative">
+              <button onClick={onCartClick} className="text-gray-600 hover:text-orange-500 transition-colors relative">
                 <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2 8m10 0l2 8m-12 0h12" />
                 </svg>
-                <span className="absolute top-0 right-0 inline-flex items-center justify-center px-2 py-1 text-xs font-bold leading-none text-white transform translate-x-1/2 -translate-y-1/2 bg-orange-500 rounded-full">0</span>
+                {cartCount > 0 && (
+                  <span className="absolute top-0 right-0 inline-flex items-center justify-center px-2 py-1 text-xs font-bold leading-none text-white transform translate-x-1/2 -translate-y-1/2 bg-orange-500 rounded-full">
+                    {cartCount}
+                  </span>
+                )}
               </button>
               {isLoggedIn ? (
                 <button
@@ -212,6 +255,18 @@ function Navbar({
                   className="w-full text-left px-3 py-2 text-gray-700 hover:text-orange-500 hover:bg-orange-50 rounded-md font-medium"
                 >
                   Browse
+                </button>
+                <button
+                  onClick={() => handleMobileAction(onWishlistClick)}
+                  className="w-full text-left px-3 py-2 text-gray-700 hover:text-red-500 hover:bg-red-50 rounded-md font-medium flex items-center gap-2"
+                >
+                  Wishlist {wishlistCount > 0 && <span className="ml-auto bg-red-500 text-white px-2 py-0.5 rounded-full text-xs font-bold">{wishlistCount}</span>}
+                </button>
+                <button
+                  onClick={() => handleMobileAction(onCartClick)}
+                  className="w-full text-left px-3 py-2 text-gray-700 hover:text-orange-500 hover:bg-orange-50 rounded-md font-medium flex items-center gap-2"
+                >
+                  Cart {cartCount > 0 && <span className="ml-auto bg-orange-500 text-white px-2 py-0.5 rounded-full text-xs font-bold">{cartCount}</span>}
                 </button>
                 <div className="border-b border-gray-200 my-2"></div>
                 <button
