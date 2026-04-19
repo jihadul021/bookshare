@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react'
 import api from '../api'
 
-export default function CartPage({ token, onBackHome, onRequireLogin }) {
+export default function CartPage({ token, onBackHome, onRequireLogin, onProceedToCheckout }) {
   const [cartItems, setCartItems] = useState([])
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState('')
@@ -101,8 +101,17 @@ export default function CartPage({ token, onBackHome, onRequireLogin }) {
       setError('Please select at least one book to proceed')
       return
     }
-    // Can be integrated with checkout later
-    alert(`Proceeding to buy ${selectedItems.size} item(s) for ৳${totalPrice}`)
+    
+    // Filter cart items for selected items only
+    const selectedCartItems = cartItems.filter(item => selectedItems.has(item._id))
+    const cartData = {
+      items: selectedCartItems,
+      totalPrice: totalPrice
+    }
+    
+    if (onProceedToCheckout) {
+      onProceedToCheckout(cartData)
+    }
   }
 
   if (isLoading && cartItems.length === 0) {

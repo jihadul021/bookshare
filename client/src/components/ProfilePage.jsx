@@ -8,7 +8,9 @@ export default function ProfilePage({
   onRequireLogin,
   onProfileUpdated,
   onAddBook,
-  onViewMyBooks
+  onViewMyBooks,
+  onViewOrders,
+  onViewSellerOrders
 }) {
   const [user, setUser] = useState(initialUser || {})
   const [isEditing, setIsEditing] = useState(false)
@@ -17,6 +19,7 @@ export default function ProfilePage({
   const [success, setSuccess] = useState('')
   const [showPasswordField, setShowPasswordField] = useState(false)
   const [profilePicPreview, setProfilePicPreview] = useState(initialUser?.profilePicture || '')
+  const [activeProfileMode, setActiveProfileMode] = useState('customer')
 
   const [formData, setFormData] = useState({
     name: initialUser?.name || '',
@@ -288,30 +291,75 @@ export default function ProfilePage({
               {/* Edit Button */}
               {!isEditing ? (
                 <div className="space-y-3">
+                  <div className="grid grid-cols-2 gap-2 rounded-xl bg-gray-100 p-1">
+                    <button
+                      onClick={() => setActiveProfileMode('customer')}
+                      className={`rounded-lg px-3 py-2 text-sm font-semibold transition-colors ${
+                        activeProfileMode === 'customer'
+                          ? 'bg-white text-gray-900 shadow-sm'
+                          : 'text-gray-500 hover:text-gray-800'
+                      }`}
+                    >
+                      Customer Profile
+                    </button>
+                    <button
+                      onClick={() => setActiveProfileMode('seller')}
+                      className={`rounded-lg px-3 py-2 text-sm font-semibold transition-colors ${
+                        activeProfileMode === 'seller'
+                          ? 'bg-white text-gray-900 shadow-sm'
+                          : 'text-gray-500 hover:text-gray-800'
+                      }`}
+                    >
+                      Seller Profile
+                    </button>
+                  </div>
                   <button
                     onClick={() => setIsEditing(true)}
                     className="w-full bg-orange-500 hover:bg-orange-600 text-white font-semibold py-2 rounded-lg transition-colors"
                   >
                     Edit Profile
                   </button>
-                  <button
-                    onClick={onViewMyBooks}
-                    className="w-full bg-blue-500 hover:bg-blue-600 text-white font-semibold py-2 rounded-lg transition-colors flex items-center justify-center"
-                  >
-                    <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6.253v13m0-13C6.5 6.253 2 10.998 2 17s4.5 10.747 10 10.747c5.5 0 10-4.998 10-10.747S17.5 6.253 12 6.253z" />
-                    </svg>
-                    View My Books
-                  </button>
-                  <button
-                    onClick={onAddBook}
-                    className="w-full bg-green-500 hover:bg-green-600 text-white font-semibold py-2 rounded-lg transition-colors flex items-center justify-center"
-                  >
-                    <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
-                    </svg>
-                    Add My Book
-                  </button>
+                  {activeProfileMode === 'seller' ? (
+                    <>
+                      <button
+                        onClick={onViewSellerOrders}
+                        className="w-full bg-indigo-500 hover:bg-indigo-600 text-white font-semibold py-2 rounded-lg transition-colors flex items-center justify-center"
+                      >
+                        <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                        </svg>
+                        Order Management
+                      </button>
+                      <button
+                        onClick={onAddBook}
+                        className="w-full bg-green-500 hover:bg-green-600 text-white font-semibold py-2 rounded-lg transition-colors flex items-center justify-center"
+                      >
+                        <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+                        </svg>
+                        Add My Book
+                      </button>
+                      <button
+                        onClick={onViewMyBooks}
+                        className="w-full bg-blue-500 hover:bg-blue-600 text-white font-semibold py-2 rounded-lg transition-colors flex items-center justify-center"
+                      >
+                        <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6.253v13m0-13C6.5 6.253 2 10.998 2 17s4.5 10.747 10 10.747c5.5 0 10-4.998 10-10.747S17.5 6.253 12 6.253z" />
+                        </svg>
+                        View My Books
+                      </button>
+                    </>
+                  ) : (
+                    <button
+                      onClick={onViewOrders}
+                      className="w-full bg-purple-500 hover:bg-purple-600 text-white font-semibold py-2 rounded-lg transition-colors flex items-center justify-center"
+                    >
+                      <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                      </svg>
+                      Order Details
+                    </button>
+                  )}
                 </div>
               ) : (
                 <div className="space-y-2">
@@ -325,28 +373,35 @@ export default function ProfilePage({
             {!isEditing ? (
               <>
                 <div className="space-y-6">
-                  {/* Statistics Card */}
                   <div className="bg-white rounded-2xl shadow-lg p-6">
-                    <h2 className="text-xl font-bold text-gray-900 mb-6">Statistics</h2>
-                    <div className="grid grid-cols-3 gap-4">
-                      <div className="bg-gradient-to-br from-blue-50 to-blue-100 rounded-lg p-4 text-center">
-                        <p className="text-3xl font-bold text-blue-600 mb-1">0</p>
-                        <p className="text-sm text-gray-600">Books Listed</p>
+                    <h2 className="text-xl font-bold text-gray-900 mb-6">
+                      {activeProfileMode === 'seller' ? 'Seller Dashboard' : 'Customer Profile'}
+                    </h2>
+                    {activeProfileMode === 'seller' ? (
+                      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                        <button
+                          onClick={onViewSellerOrders}
+                          className="rounded-xl border border-indigo-200 bg-indigo-50 px-5 py-6 text-left hover:bg-indigo-100 transition-colors"
+                        >
+                          <p className="text-sm text-indigo-600 font-semibold mb-2">Orders</p>
+                          <p className="text-lg font-bold text-gray-900">Manage customer orders</p>
+                        </button>
+                        <button
+                          onClick={onAddBook}
+                          className="rounded-xl border border-green-200 bg-green-50 px-5 py-6 text-left hover:bg-green-100 transition-colors"
+                        >
+                          <p className="text-sm text-green-600 font-semibold mb-2">Inventory</p>
+                          <p className="text-lg font-bold text-gray-900">Add a new book listing</p>
+                        </button>
+                        <button
+                          onClick={onViewMyBooks}
+                          className="rounded-xl border border-blue-200 bg-blue-50 px-5 py-6 text-left hover:bg-blue-100 transition-colors"
+                        >
+                          <p className="text-sm text-blue-600 font-semibold mb-2">Listings</p>
+                          <p className="text-lg font-bold text-gray-900">Review your listed books</p>
+                        </button>
                       </div>
-                      <div className="bg-gradient-to-br from-green-50 to-green-100 rounded-lg p-4 text-center">
-                        <p className="text-3xl font-bold text-green-600 mb-1">0</p>
-                        <p className="text-sm text-gray-600">Active Listings</p>
-                      </div>
-                      <div className="bg-gradient-to-br from-purple-50 to-purple-100 rounded-lg p-4 text-center">
-                        <p className="text-3xl font-bold text-purple-600 mb-1">0</p>
-                        <p className="text-sm text-gray-600">Transactions</p>
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* Profile Information */}
-                  <div className="bg-white rounded-2xl shadow-lg p-6">
-                    <h2 className="text-xl font-bold text-gray-900 mb-6">Profile Information</h2>
+                    ) : (
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                       <div>
                         <p className="text-sm text-gray-500 mb-2">Full Name</p>
@@ -374,6 +429,7 @@ export default function ProfilePage({
                         <p className="text-lg font-semibold text-green-600">Active</p>
                       </div>
                     </div>
+                    )}
                   </div>
                 </div>
               </>

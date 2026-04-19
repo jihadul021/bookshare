@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import Navbar from './components/Navbar'; 
 import Banner from './components/Banner';
 import Categories from './components/Categories'
@@ -13,6 +13,15 @@ import AddBookPage from './components/AddBookPage';
 import MyBooksPage from './components/MyBooksPage';
 import CartPage from './components/CartPage';
 import WishlistPage from './components/WishlistPage';
+import SearchResults from './components/SearchResults';
+import SellerProfile from './components/SellerProfile';
+import Checkout from './components/Checkout';
+import Congratulations from './components/Congratulations';
+import OrderDetails from './components/OrderDetails';
+import SellerOrderManagement from './components/SellerOrderManagement';
+import Inbox from './components/Inbox';
+import ChatWindow from './components/ChatWindow';
+import { connectSocket, disconnectSocket } from './socket';
 
 const getStoredUser = () => {
   try {
@@ -35,8 +44,25 @@ function App() {
   // }
     const [activeCategory, setActiveCategory] = useState('all')
     const [selectedItem, setSelectedItem] = useState(null)
-    const [currentView, setCurrentView] = useState('home') // 'home' | 'detail' | 'login' | 'register' | 'profile' | 'addbook' | 'mybooks' | 'cart' | 'wishlist'
+    const [currentView, setCurrentView] = useState('home') // 'home' | 'detail' | 'login' | 'register' | 'profile' | 'addbook' | 'mybooks' | 'cart' | 'wishlist' | 'search' | 'seller' | 'checkout' | 'congratulations' | 'orders' | 'seller-orders' | 'inbox' | 'chat'
     const [currentUser, setCurrentUser] = useState(getStoredUser)
+    const [searchQuery, setSearchQuery] = useState('')
+    const [selectedSellerId, setSelectedSellerId] = useState(null)
+    const [cartForCheckout, setCartForCheckout] = useState(null)
+    const [completedOrder, setCompletedOrder] = useState(null)
+    const [selectedConversation, setSelectedConversation] = useState(null)
+    
+    useEffect(() => {
+      if (currentUser?._id) {
+        connectSocket(currentUser._id);
+      }
+
+      return () => {
+        if (!currentUser?.token) {
+          disconnectSocket();
+        }
+      }
+    }, [currentUser?._id, currentUser?.token])
     
     const handleItemClick = (item) => {
       setSelectedItem(item)
@@ -66,6 +92,7 @@ function App() {
     }
 
     const handleLogout = () => {
+      disconnectSocket()
       localStorage.removeItem('bookshareUser')
       setCurrentUser(null)
       handleBack()
@@ -143,18 +170,122 @@ function App() {
       window.scrollTo(0, 0)
     }
 
+    const handleSearch = (query = '') => {
+      setSearchQuery(query)
+      setCurrentView('search')
+      window.scrollTo(0, 0)
+    }
+
+    const handleBackFromSearch = () => {
+      setSearchQuery('')
+      setCurrentView('home')
+      window.scrollTo(0, 0)
+    }
+
+    const handleViewSeller = (sellerId) => {
+      setSelectedSellerId(sellerId)
+      setCurrentView('seller')
+      window.scrollTo(0, 0)
+    }
+
+    const handleBackFromSeller = () => {
+      setSelectedSellerId(null)
+      setCurrentView('home')
+      window.scrollTo(0, 0)
+    }
+
+    const handleProceedToCheckout = (cart) => {
+      if (!currentUser?.token) {
+        handleShowLogin()
+        return
+      }
+      setCartForCheckout(cart)
+      setCurrentView('checkout')
+      window.scrollTo(0, 0)
+    }
+
+    const handleOrderSuccess = (order) => {
+      setCompletedOrder(order)
+      setCurrentView('congratulations')
+      window.scrollTo(0, 0)
+    }
+
+    const handleBackFromCongratulations = () => {
+      setCompletedOrder(null)
+      setCartForCheckout(null)
+      setCurrentView('home')
+      window.scrollTo(0, 0)
+    }
+
+    const handleViewOrders = () => {
+      if (!currentUser?.token) {
+        handleShowLogin()
+        return
+      }
+      setCurrentView('orders')
+      window.scrollTo(0, 0)
+    }
+
+    const handleBackFromOrders = () => {
+      setCurrentView('profile')
+      window.scrollTo(0, 0)
+    }
+
+    const handleViewSellerOrders = () => {
+      if (!currentUser?.token) {
+        handleShowLogin()
+        return
+      }
+      setCurrentView('seller-orders')
+      window.scrollTo(0, 0)
+    }
+
+    const handleBackFromSellerOrders = () => {
+      setCurrentView('profile')
+      window.scrollTo(0, 0)
+    }
+
+    const handleShowInbox = () => {
+      if (!currentUser?.token) {
+        handleShowLogin()
+        return
+      }
+      setCurrentView('inbox')
+      window.scrollTo(0, 0)
+    }
+
+    const handleBackFromInbox = () => {
+      setSelectedConversation(null)
+      setCurrentView('home')
+      window.scrollTo(0, 0)
+    }
+
+    const handleSelectConversation = (conversation) => {
+      setSelectedConversation(conversation)
+      setCurrentView('chat')
+      window.scrollTo(0, 0)
+    }
+
+    const handleBackFromChat = () => {
+      setSelectedConversation(null)
+      setCurrentView('inbox')
+      window.scrollTo(0, 0)
+    }
+
 
   return (
         <div className="min-h-screen bg-gray-50">
           <Navbar
             onLogoClick={handleBack}
-            onBrowseClick={handleBack}
+            onBrowseClick={handleBrowseAll}
             onLoginClick={handleShowLogin}
             onRegisterClick={handleShowRegister}
             onLogoutClick={handleLogout}
             onMyProfileClick={handleMyProfile}
             onCartClick={handleViewCart}
             onWishlistClick={handleViewWishlist}
+            onChatClick={handleShowInbox}
+            onSearch={handleSearch}
             isLoggedIn={Boolean(currentUser?.token)}
             userName={currentUser?.name}
             profilePicture={currentUser?.profilePicture}
@@ -164,11 +295,16 @@ function App() {
         <>
           <Banner />
           <Categories activeCategory={activeCategory} setActiveCategory={setActiveCategory} />
-          <BookGrid activeCategory={activeCategory} onItemClick={handleItemClick} token={currentUser?.token} onShowCart={handleViewCart} onShowWishlist={handleViewWishlist} />      
+          <BookGrid activeCategory={activeCategory} onItemClick={handleItemClick} token={currentUser?.token} onShowCart={handleViewCart} onShowWishlist={handleViewWishlist} onSeeAll={handleBrowseAll} />      
           <HowItWorks/>  
         </>
             ) : currentView === 'detail' ? (
-                <ProductDetails item={selectedItem} onBack={handleBack} token={currentUser?.token} />
+                <ProductDetails
+                  item={selectedItem}
+                  onBack={handleBack}
+                  token={currentUser?.token}
+                  onViewSeller={handleViewSeller}
+                />
             ) : currentView === 'login' ? (
                 <LoginPage
                   onSwitchToRegister={handleShowRegister}
@@ -197,18 +333,69 @@ function App() {
                   onProfileUpdated={handleAuthSuccess}
                   onAddBook={handleAddBook}
                   onViewMyBooks={handleViewMyBooks}
+                  onViewOrders={handleViewOrders}
+                  onViewSellerOrders={handleViewSellerOrders}
                 />
             ) : currentView === 'cart' ? (
                 <CartPage
                   token={currentUser?.token}
                   onBack={handleBackFromCart}
                   onRequireLogin={handleShowLogin}
+                  onProceedToCheckout={handleProceedToCheckout}
                 />
             ) : currentView === 'wishlist' ? (
                 <WishlistPage
                   token={currentUser?.token}
                   onBack={handleBackFromWishlist}
                   onRequireLogin={handleShowLogin}
+                />
+            ) : currentView === 'search' ? (
+                <SearchResults
+                  searchQuery={searchQuery}
+                  onBack={handleBackFromSearch}
+                  token={currentUser?.token}
+                  onItemClick={handleItemClick}
+                  onShowCart={handleViewCart}
+                  onShowWishlist={handleViewWishlist}
+                />
+            ) : currentView === 'seller' ? (
+                <SellerProfile
+                  sellerId={selectedSellerId}
+                  onBack={handleBackFromSeller}
+                  token={currentUser?.token}
+                  onItemClick={handleItemClick}
+                  onShowCart={handleViewCart}
+                  onShowWishlist={handleViewWishlist}
+                />
+            ) : currentView === 'checkout' ? (
+                <Checkout
+                  cart={cartForCheckout}
+                  onOrderSuccess={handleOrderSuccess}
+                />
+            ) : currentView === 'congratulations' ? (
+                <Congratulations
+                  order={completedOrder}
+                  onBackHome={handleBackFromCongratulations}
+                />
+            ) : currentView === 'orders' ? (
+                <OrderDetails
+                  onBack={handleBackFromOrders}
+                />
+            ) : currentView === 'seller-orders' ? (
+                <SellerOrderManagement
+                  onBack={handleBackFromSellerOrders}
+                />
+            ) : currentView === 'inbox' ? (
+                <Inbox
+                  onSelectConversation={handleSelectConversation}
+                  onBack={handleBackFromInbox}
+                  token={currentUser?.token}
+                />
+            ) : currentView === 'chat' ? (
+                <ChatWindow
+                  conversation={selectedConversation}
+                  onBack={handleBackFromChat}
+                  token={currentUser?.token}
                 />
             ) : (
                 <RegisterPage
@@ -225,3 +412,6 @@ function App() {
 }
 
 export default App
+    const handleBrowseAll = () => {
+      handleSearch('')
+    }

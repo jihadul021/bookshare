@@ -1,5 +1,7 @@
 import { useState, useEffect } from 'react'
 import api from '../api'
+import { getUnreadCount } from '../api'
+import { connectSocket, getSocket } from '../socket'
 
 function Navbar({
   onLogoClick,
@@ -10,6 +12,8 @@ function Navbar({
   onMyProfileClick,
   onCartClick,
   onWishlistClick,
+  onChatClick,
+  onSearch,
   isLoggedIn,
   userName,
   profilePicture,
@@ -20,6 +24,7 @@ function Navbar({
   const [searchQuery, setSearchQuery] = useState('')
   const [cartCount, setCartCount] = useState(0)
   const [wishlistCount, setWishlistCount] = useState(0)
+  const [unreadMessages, setUnreadMessages] = useState(0)
   const profileInitial = userName?.trim()?.charAt(0)?.toUpperCase() || 'U'
   const hasProfilePicture =
     Boolean(profilePicture?.trim()) && !profilePicture.includes('google.com/url?')
@@ -27,6 +32,38 @@ function Navbar({
   useEffect(() => {
     if (token) {
       fetchCounts()
+      fetchUnreadCount()
+    }
+  }, [token])
+
+  useEffect(() => {
+    if (!token) {
+      return undefined
+    }
+
+    const storedUser = JSON.parse(localStorage.getItem('bookshareUser') || 'null')
+    if (!storedUser?._id) {
+      return undefined
+    }
+
+    const socket = connectSocket(storedUser._id) || getSocket()
+    if (!socket) {
+      return undefined
+    }
+
+    const handleRealtimeUpdate = () => {
+      fetchUnreadCount()
+      fetchCounts()
+    }
+
+    socket.on('receive-message', handleRealtimeUpdate)
+    socket.on('message-read', handleRealtimeUpdate)
+    socket.on('message-sent', handleRealtimeUpdate)
+
+    return () => {
+      socket.off('receive-message', handleRealtimeUpdate)
+      socket.off('message-read', handleRealtimeUpdate)
+      socket.off('message-sent', handleRealtimeUpdate)
     }
   }, [token])
 
@@ -42,6 +79,15 @@ function Navbar({
       console.error('Failed to fetch counts:', err)
     }
   }
+
+  const fetchUnreadCount = async () => {
+    try {
+      const response = await getUnreadCount()
+      setUnreadMessages(response.data.unreadCount || 0)
+    } catch (err) {
+      console.error('Failed to fetch unread count:', err)
+    }
+  }
   
   const handleMobileAction = (action) => {
     action?.()
@@ -51,6 +97,13 @@ function Navbar({
   const handleDesktopProfileAction = (action) => {
     action?.()
     setIsDesktopProfileOpen(false)
+  }
+
+  const handleSearchSubmit = (e) => {
+    if (e.key === 'Enter' || e.type === 'click') {
+      onSearch?.(searchQuery)
+      setSearchQuery('')
+    }
   }
 
   return (
@@ -73,11 +126,17 @@ function Navbar({
                   placeholder="Search books..."
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
+                  onKeyPress={handleSearchSubmit}
                   className="w-full px-4 py-2.5 bg-gray-100 text-gray-900 placeholder-gray-500 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500 transition-all"
                 />
-                <svg className="absolute right-3 top-3 w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-                </svg>
+                <button
+                  onClick={handleSearchSubmit}
+                  className="absolute right-3 top-3 w-5 h-5 text-gray-400 hover:text-gray-600 bg-none border-none cursor-pointer"
+                >
+                  <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                  </svg>
+                </button>
               </div>
             </div>
 
@@ -110,6 +169,18 @@ function Navbar({
                 {cartCount > 0 && (
                   <span className="absolute top-0 right-0 inline-flex items-center justify-center px-2 py-1 text-xs font-bold leading-none text-white transform translate-x-1/2 -translate-y-1/2 bg-orange-500 rounded-full">
                     {cartCount}
+                  </span>
+                )}
+              </button>
+
+              {/* Messages */}
+              <button onClick={onChatClick} className="text-gray-600 hover:text-blue-500 transition-colors relative">
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
+                </svg>
+                {unreadMessages > 0 && (
+                  <span className="absolute top-0 right-0 inline-flex items-center justify-center px-2 py-1 text-xs font-bold leading-none text-white transform translate-x-1/2 -translate-y-1/2 bg-blue-500 rounded-full">
+                    {unreadMessages > 99 ? '99+' : unreadMessages}
                   </span>
                 )}
               </button>
@@ -229,11 +300,19 @@ function Navbar({
               <input
                 type="text"
                 placeholder="Search..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                onKeyPress={handleSearchSubmit}
                 className="w-full px-4 py-2.5 bg-gray-100 text-gray-900 placeholder-gray-500 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500 transition-all"
               />
-              <svg className="absolute right-3 top-3 w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-              </svg>
+              <button
+                onClick={handleSearchSubmit}
+                className="absolute right-3 top-3 w-5 h-5 text-gray-400 hover:text-gray-600 bg-none border-none cursor-pointer"
+              >
+                <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                </svg>
+              </button>
             </div>
             {isLoggedIn ? (
               <>
@@ -267,6 +346,12 @@ function Navbar({
                   className="w-full text-left px-3 py-2 text-gray-700 hover:text-orange-500 hover:bg-orange-50 rounded-md font-medium flex items-center gap-2"
                 >
                   Cart {cartCount > 0 && <span className="ml-auto bg-orange-500 text-white px-2 py-0.5 rounded-full text-xs font-bold">{cartCount}</span>}
+                </button>
+                <button
+                  onClick={() => handleMobileAction(onChatClick)}
+                  className="w-full text-left px-3 py-2 text-gray-700 hover:text-blue-500 hover:bg-blue-50 rounded-md font-medium flex items-center gap-2"
+                >
+                  Messages {unreadMessages > 0 && <span className="ml-auto bg-blue-500 text-white px-2 py-0.5 rounded-full text-xs font-bold">{unreadMessages > 99 ? '99+' : unreadMessages}</span>}
                 </button>
                 <div className="border-b border-gray-200 my-2"></div>
                 <button

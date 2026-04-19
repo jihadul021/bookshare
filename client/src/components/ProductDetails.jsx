@@ -1,11 +1,13 @@
 import { useState, useEffect } from 'react'
 import api from '../api'
+import FloatingChat from './FloatingChat'
 
-function ProductDetails({ item, onBack, token }) {
+function ProductDetails({ item, onBack, token, onViewSeller }) {
   const [isInCart, setIsInCart] = useState(false)
   const [isInWishlist, setIsInWishlist] = useState(false)
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState('')
+  const [showChatWindow, setShowChatWindow] = useState(false)
 
   // Check if item is in cart/wishlist on mount
   useEffect(() => {
@@ -198,21 +200,43 @@ function ProductDetails({ item, onBack, token }) {
           </div>
 
           {/* Seller Info */}
-          <div className="flex items-center justify-between bg-gray-50 p-6 rounded-2xl border border-gray-100 mb-8">
-            <div className="flex items-center">
+          <div
+            onClick={() => onViewSeller?.(seller._id)}
+            className="flex items-center justify-between bg-gray-50 p-6 rounded-2xl border border-gray-100 mb-8 cursor-pointer hover:bg-gray-100 transition-colors"
+          >
+            <div className="flex items-center flex-grow">
               <div className="w-14 h-14 rounded-full bg-orange-100 flex items-center justify-center text-orange-700 font-bold text-xl border border-orange-200 mr-4">
                 {seller.name?.charAt(0) || 'S'}
               </div>
-              <div>
-                <h3 className="font-bold text-gray-900 text-lg">{seller.name || 'Seller'}</h3>
+              <div className="flex-grow">
+                <h3 className="font-bold text-gray-900 text-lg hover:text-orange-600 transition-colors">
+                  {seller.name || 'Seller'}
+                </h3>
                 <p className="text-gray-500 text-sm">
                   {isVerified ? '✓ Verified seller' : 'Unverified'}
                 </p>
               </div>
             </div>
-            <button className="hidden sm:block border border-gray-300 bg-white hover:bg-gray-50 text-gray-700 font-medium py-2 px-6 rounded-xl transition-colors">
-              Contact Seller
-            </button>
+            <div className="flex gap-3">
+              <button
+                onClick={(e) => {
+                  e.stopPropagation()
+                  setShowChatWindow(true)
+                }}
+                className="hidden sm:block border border-blue-300 bg-blue-50 hover:bg-blue-100 text-blue-600 hover:text-blue-700 font-medium py-2 px-6 rounded-xl transition-colors"
+              >
+                💬 Chat
+              </button>
+              <button
+                onClick={(e) => {
+                  e.stopPropagation()
+                  onViewSeller?.(seller._id)
+                }}
+                className="hidden sm:block border border-gray-300 bg-white hover:bg-orange-50 text-gray-700 hover:text-orange-600 font-medium py-2 px-6 rounded-xl transition-colors"
+              >
+                View Store
+              </button>
+            </div>
           </div>
 
           {/* Description */}
@@ -247,7 +271,7 @@ function ProductDetails({ item, onBack, token }) {
                   <p className="font-semibold text-gray-900">Location</p>
                   <p className="text-gray-600">{item.location}</p>
                 </div>
-              </div>
+              </div> 
               {item.exchangeAvailable && (
                 <div className="flex items-start">
                   <span className="text-green-500 mr-3">✓</span>
@@ -318,6 +342,17 @@ function ProductDetails({ item, onBack, token }) {
         </div>
 
       </div>
+
+      {/* Floating Chat Window */}
+      {showChatWindow && (
+        <FloatingChat
+          sellerId={seller._id}
+          sellerName={seller.name}
+          token={token}
+          bookId={item._id}
+          onClose={() => setShowChatWindow(false)}
+        />
+      )}
     </div>
   )
 }

@@ -29,6 +29,17 @@ exports.addToCart = async (req, res) => {
     const book = await Book.findById(bookId);
     if (!book) return res.status(404).json({ message: 'Book not found' });
 
+    // Check stock
+    if (book.stock <= 0) {
+      return res.status(400).json({ message: 'Book is out of stock' });
+    }
+
+    if (book.stock < quantity) {
+      return res.status(400).json({ 
+        message: `Insufficient stock. Available: ${book.stock}` 
+      });
+    }
+
     let cart = await Cart.findOne({ user: req.user._id });
 
     if (!cart) {
@@ -42,8 +53,14 @@ exports.addToCart = async (req, res) => {
     const itemIndex = cart.items.findIndex(item => item.book.toString() === bookId);
 
     if (itemIndex > -1) {
-      // Update quantity
-      cart.items[itemIndex].quantity += parseInt(quantity);
+      // Check if total quantity will exceed stock
+      const newQuantity = cart.items[itemIndex].quantity + parseInt(quantity);
+      if (newQuantity > book.stock) {
+        return res.status(400).json({ 
+          message: `Insufficient stock. Available: ${book.stock}` 
+        });
+      }
+      cart.items[itemIndex].quantity = newQuantity;
     } else {
       // Add new item
       cart.items.push({
@@ -113,6 +130,16 @@ exports.updateCartItemQuantity = async (req, res) => {
     const itemIndex = cart.items.findIndex(item => item.book.toString() === bookId);
 
     if (itemIndex === -1) return res.status(404).json({ message: 'Item not in cart' });
+
+    // Check stock if quantity is being increased
+    if (quantity > 0) {
+      const book = await Book.findById(bookId);
+      if (book.stock < quantity) {
+        return res.status(400).json({ 
+          message: `Insufficient stock. Available: ${book.stock}` 
+        });
+      }
+    }
 
     if (quantity <= 0) {
       cart.items.splice(itemIndex, 1);

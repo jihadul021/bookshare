@@ -118,7 +118,7 @@ function ItemCard({ item, onItemClick, token, onAddToCart, onAddToWishlist, isIn
   )
 }
 
-function BookGrid({ activeCategory, onItemClick, token, onShowCart, onShowWishlist }) {
+function BookGrid({ activeCategory, onItemClick, token, onShowCart, onShowWishlist, onSeeAll }) {
   const [books, setBooks] = useState([])
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState('')
@@ -299,9 +299,8 @@ function BookGrid({ activeCategory, onItemClick, token, onShowCart, onShowWishli
             ))}
           </div>
 
-          {/* See More Button */}
-          {hasMore && (
-            <div className="flex justify-center mb-12">
+          <div className="flex justify-center gap-4 mb-12 flex-wrap">
+            {hasMore && (
               <button
                 onClick={() => setPage(prev => prev + 1)}
                 disabled={isLoading}
@@ -324,8 +323,14 @@ function BookGrid({ activeCategory, onItemClick, token, onShowCart, onShowWishli
                   </>
                 )}
               </button>
-            </div>
-          )}
+            )}
+            <button
+              onClick={onSeeAll}
+              className="flex items-center justify-center gap-2 bg-white hover:bg-gray-50 text-gray-900 border border-gray-300 font-bold py-3 px-8 rounded-xl transition-colors"
+            >
+              See All
+            </button>
+          </div>
         </>
       )}
     </section>

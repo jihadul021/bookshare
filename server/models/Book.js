@@ -59,9 +59,14 @@ const bookSchema = new mongoose.Schema({
     type: Boolean,
     default: false
   },
-    location: {
+  location: {
     type: String,
     required: [true, 'Location is required']
+  },
+  stock: {
+    type: Number,
+    default: 1,
+    min: 0
   },
   reviews: [reviewSchema],
   rating: {
