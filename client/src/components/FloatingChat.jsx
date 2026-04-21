@@ -7,7 +7,20 @@ import {
   sendMessage
 } from '../api';
 import { connectSocket, getSocket } from '../socket';
+import getImageUrl from '../utils/getImageUrl';
 import './FloatingChat.css';
+
+const notifyChatUpdate = (conversationId) => {
+  if (!conversationId) {
+    return;
+  }
+
+  window.dispatchEvent(
+    new CustomEvent('bookshare-chat-updated', {
+      detail: { conversationId }
+    })
+  );
+};
 
 const FloatingChat = ({ sellerId, sellerName, token, onClose, bookId = null }) => {
   const [messages, setMessages] = useState([]);
@@ -48,6 +61,7 @@ const FloatingChat = ({ sellerId, sellerName, token, onClose, bookId = null }) =
         }
         return [...prev, data.message];
       });
+      notifyChatUpdate(conversation._id);
       setTyping(false);
       await markConversationAsRead(conversation._id);
       socket.emit('mark-read', {
@@ -67,6 +81,7 @@ const FloatingChat = ({ sellerId, sellerName, token, onClose, bookId = null }) =
         }
         return [...prev, data.message];
       });
+      notifyChatUpdate(conversation._id);
     };
 
     const handleUserTyping = (data) => {
@@ -172,6 +187,7 @@ const FloatingChat = ({ sellerId, sellerName, token, onClose, bookId = null }) =
         }
         return [...prev, newMessage];
       });
+      notifyChatUpdate(conversation._id);
 
       const socket = getSocket();
       socket?.emit('send-message', {
@@ -198,6 +214,7 @@ const FloatingChat = ({ sellerId, sellerName, token, onClose, bookId = null }) =
             : message
         )
       );
+      notifyChatUpdate(conversation?._id);
     } catch (error) {
       console.error('Failed to delete message:', error);
     }
@@ -247,9 +264,28 @@ const FloatingChat = ({ sellerId, sellerName, token, onClose, bookId = null }) =
                     className={`chat-message ${isSender ? 'sent' : 'received'}`}
                   >
                     <div className="message-content">
-                      <p className="message-text">
-                        {message.isDeleted ? '[Message deleted]' : message.text}
-                      </p>
+                      {message.image && (
+                        <img
+                          src={getImageUrl(message.image)}
+                          alt="Message attachment"
+                          style={{
+                            maxWidth: '180px',
+                            maxHeight: '220px',
+                            width: '100%',
+                            objectFit: 'cover',
+                            borderRadius: '10px',
+                            marginBottom: message.text ? '8px' : '0'
+                          }}
+                        />
+                      )}
+                      {message.text && (
+                        <p className="message-text">
+                          {message.isDeleted ? '[Message deleted]' : message.text}
+                        </p>
+                      )}
+                      {!message.text && message.isDeleted && (
+                        <p className="message-text">[Message deleted]</p>
+                      )}
                       <span className="message-time">
                         {new Date(message.createdAt).toLocaleTimeString([], {
                           hour: '2-digit',

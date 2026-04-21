@@ -48,6 +48,10 @@ const userSchema = new mongoose.Schema({
   joinDate: {
     type: Date,
     default: Date.now
+  },
+  isDisabled: {
+    type: Boolean,
+    default: false
   }
 }, { timestamps: true });
 

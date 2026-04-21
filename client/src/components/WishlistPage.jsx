@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react'
 import api from '../api'
+import getImageUrl from '../utils/getImageUrl'
 
 export default function WishlistPage({ token, onBackHome, onRequireLogin }) {
   const [wishlistItems, setWishlistItems] = useState([])
@@ -204,7 +205,7 @@ export default function WishlistPage({ token, onBackHome, onRequireLogin }) {
                       <div className="w-24 h-32 bg-gray-200 rounded-lg overflow-hidden flex-shrink-0">
                         {item.book?.images && item.book.images.length > 0 ? (
                           <img
-                            src={item.book.images[0]}
+                            src={getImageUrl(item.book.images[0])}
                             alt={item.book.title}
                             className="w-full h-full object-cover"
                           />

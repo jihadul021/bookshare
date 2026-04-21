@@ -1,7 +1,8 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import api from '../api'
 import { getUnreadCount } from '../api'
 import { connectSocket, getSocket } from '../socket'
+import getImageUrl from '../utils/getImageUrl'
 
 function Navbar({
   onLogoClick,
@@ -29,12 +30,37 @@ function Navbar({
   const hasProfilePicture =
     Boolean(profilePicture?.trim()) && !profilePicture.includes('google.com/url?')
 
-  useEffect(() => {
-    if (token) {
-      fetchCounts()
-      fetchUnreadCount()
+  const fetchCounts = useCallback(async () => {
+    try {
+      const [cartRes, wishlistRes] = await Promise.all([
+        api.get('/api/cart', { headers: { Authorization: `Bearer ${token}` } }),
+        api.get('/api/wishlist', { headers: { Authorization: `Bearer ${token}` } })
+      ])
+      setCartCount(cartRes.data.items?.length || 0)
+      setWishlistCount(wishlistRes.data.books?.length || 0)
+    } catch (err) {
+      console.error('Failed to fetch counts:', err)
     }
   }, [token])
+
+  const fetchUnreadCount = useCallback(async () => {
+    try {
+      const response = await getUnreadCount()
+      setUnreadMessages(response.data.unreadCount || 0)
+    } catch (err) {
+      console.error('Failed to fetch unread count:', err)
+    }
+  }, [])
+
+  useEffect(() => {
+    if (token) {
+      const loadCounts = async () => {
+        await Promise.all([fetchCounts(), fetchUnreadCount()])
+      }
+
+      loadCounts()
+    }
+  }, [token, fetchCounts, fetchUnreadCount])
 
   useEffect(() => {
     if (!token) {
@@ -65,29 +91,7 @@ function Navbar({
       socket.off('message-read', handleRealtimeUpdate)
       socket.off('message-sent', handleRealtimeUpdate)
     }
-  }, [token])
-
-  const fetchCounts = async () => {
-    try {
-      const [cartRes, wishlistRes] = await Promise.all([
-        api.get('/api/cart', { headers: { Authorization: `Bearer ${token}` } }),
-        api.get('/api/wishlist', { headers: { Authorization: `Bearer ${token}` } })
-      ])
-      setCartCount(cartRes.data.items?.length || 0)
-      setWishlistCount(wishlistRes.data.books?.length || 0)
-    } catch (err) {
-      console.error('Failed to fetch counts:', err)
-    }
-  }
-
-  const fetchUnreadCount = async () => {
-    try {
-      const response = await getUnreadCount()
-      setUnreadMessages(response.data.unreadCount || 0)
-    } catch (err) {
-      console.error('Failed to fetch unread count:', err)
-    }
-  }
+  }, [token, fetchCounts, fetchUnreadCount])
   
   const handleMobileAction = (action) => {
     action?.()
@@ -101,7 +105,7 @@ function Navbar({
 
   const handleSearchSubmit = (e) => {
     if (e.key === 'Enter' || e.type === 'click') {
-      onSearch?.(searchQuery)
+      onSearch?.(searchQuery.trim())
       setSearchQuery('')
     }
   }
@@ -193,7 +197,7 @@ function Navbar({
                   >
                     {hasProfilePicture ? (
                       <img
-                        src={profilePicture}
+                        src={getImageUrl(profilePicture)}
                         alt="Profile"
                         className="w-9 h-9 rounded-full border border-orange-200 object-cover"
                       />
@@ -269,7 +273,7 @@ function Navbar({
                 >
                   {hasProfilePicture ? (
                     <img
-                      src={profilePicture}
+                      src={getImageUrl(profilePicture)}
                       alt="Profile"
                       className="w-8 h-8 rounded-full border border-orange-200 object-cover"
                     />

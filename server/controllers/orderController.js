@@ -4,6 +4,7 @@ const Book = require('../models/Book');
 const Cart = require('../models/Cart');
 const Address = require('../models/Address');
 const User = require('../models/User');
+const Conversation = require('../models/Conversation');
 
 // Helper function to generate unique order number
 const generateOrderNumber = async () => {
@@ -23,6 +24,14 @@ const generateOrderNumber = async () => {
 // Create a new order from cart
 exports.createOrder = async (req, res) => {
   try {
+    // Prevent admin and disabled users from creating orders
+    if (req.user.role === 'admin') {
+      return res.status(403).json({ message: 'Admins cannot place orders' });
+    }
+    if (req.user.isDisabled) {
+      return res.status(403).json({ message: 'Your account is disabled' });
+    }
+
     const { items, shippingAddress, couponCode, paymentMethod } = req.body;
     const userId = req.user._id;
 
@@ -196,6 +205,148 @@ exports.createOrder = async (req, res) => {
   }
 };
 
+exports.createExchangeRequest = async (req, res) => {
+  try {
+    if (req.user.role === 'admin') {
+      return res.status(403).json({ message: 'Admins cannot request exchanges' });
+    }
+    if (req.user.isDisabled) {
+      return res.status(403).json({ message: 'Your account is disabled' });
+    }
+
+    const { requestedBookId, offeredBookId, details } = req.body;
+
+    if (!requestedBookId || !offeredBookId) {
+      return res.status(400).json({ message: 'Requested and offered book are required' });
+    }
+
+    const [requestedBook, offeredBook] = await Promise.all([
+      Book.findById(requestedBookId).populate('seller', 'name'),
+      Book.findById(offeredBookId)
+    ]);
+
+    if (!requestedBook || !offeredBook) {
+      return res.status(404).json({ message: 'Book not found' });
+    }
+
+    if (!requestedBook.exchangeAvailable) {
+      return res.status(400).json({ message: 'This book is not available for exchange' });
+    }
+
+    if (requestedBook.seller._id.toString() === req.user._id.toString()) {
+      return res.status(400).json({ message: 'You cannot exchange for your own book' });
+    }
+
+    if (offeredBook.seller.toString() !== req.user._id.toString()) {
+      return res.status(403).json({ message: 'You can only offer your own listed books' });
+    }
+
+    const existingRequest = await Order.findOne({
+      orderType: 'exchange',
+      user: req.user._id,
+      'exchangeRequest.requestedBook': requestedBookId,
+      'exchangeRequest.offeredBook': offeredBookId,
+      status: { $in: ['pending', 'processing'] }
+    });
+
+    if (existingRequest) {
+      return res.status(400).json({ message: 'You already have an active exchange request for this book pair' });
+    }
+
+    const orderNumber = await generateOrderNumber();
+
+    const order = new Order({
+      orderNumber,
+      orderType: 'exchange',
+      user: req.user._id,
+      items: [
+        {
+          book: requestedBook._id,
+          quantity: 1,
+          price: 0
+        }
+      ],
+      sellers: [
+        {
+          sellerId: requestedBook.seller._id,
+          sellerName: requestedBook.seller.name || 'Unknown Seller',
+          items: [requestedBook._id],
+          status: 'pending'
+        }
+      ],
+      shippingAddress: {
+        fullName: req.user.name || 'Exchange Request',
+        phone: req.user.phone || 'N/A',
+        division: 'N/A',
+        district: 'N/A',
+        thana: 'N/A',
+        address: req.user.address || 'Arrange through chat',
+        zipCode: ''
+      },
+      subtotal: 0,
+      shippingCost: 0,
+      totalAmount: 0,
+      paymentMethod: 'cash_on_delivery',
+      paymentStatus: 'pending',
+      status: 'pending',
+      notes: details || '',
+      exchangeRequest: {
+        requestedBook: requestedBook._id,
+        offeredBook: offeredBook._id,
+        details: details || '',
+        buyerConfirmed: false,
+        sellerConfirmed: false
+      }
+    });
+
+    order.statusHistory.push({
+      status: 'pending',
+      changedAt: new Date(),
+      changedBy: req.user._id,
+      reason: 'Exchange request created'
+    });
+
+    order.sellers[0].statusHistory.push({
+      status: 'pending',
+      changedAt: new Date(),
+      changedBy: req.user._id,
+      reason: 'Exchange request created'
+    });
+
+    await order.save();
+
+    await order.populate([
+      { path: 'items.book', select: 'title author images price seller' },
+      { path: 'user', select: 'name email phone address' },
+      { path: 'sellers.sellerId', select: 'name email' },
+      { path: 'exchangeRequest.requestedBook', select: 'title author images' },
+      { path: 'exchangeRequest.offeredBook', select: 'title author images seller' }
+    ]);
+
+    const existingConversation = await Conversation.findOne({
+      participants: { $all: [req.user._id, requestedBook.seller._id] },
+      isActive: true
+    });
+
+    if (!existingConversation) {
+      const conversation = new Conversation({
+        participants: [req.user._id, requestedBook.seller._id],
+        book: requestedBook._id
+      });
+      await conversation.save();
+    }
+
+    res.status(201).json({
+      success: true,
+      message: 'Exchange request sent successfully',
+      order
+    });
+  } catch (error) {
+    console.error('Exchange request error:', error);
+    res.status(500).json({ message: error.message });
+  }
+};
+
 // Get user's orders
 exports.getUserOrders = async (req, res) => {
   try {
@@ -205,6 +356,8 @@ exports.getUserOrders = async (req, res) => {
       .populate('items.book')
       .populate('sellers.sellerId', 'name')
       .populate('user', 'name email phone')
+      .populate('exchangeRequest.requestedBook', 'title author images')
+      .populate('exchangeRequest.offeredBook', 'title author images seller')
       .sort({ createdAt: -1 });
 
     res.status(200).json({
@@ -228,6 +381,8 @@ exports.getOrderById = async (req, res) => {
       .populate('sellers.sellerId', 'name')
       .populate('user')
       .populate('statusHistory.changedBy', 'name');
+    await order?.populate('exchangeRequest.requestedBook', 'title author images');
+    await order?.populate('exchangeRequest.offeredBook', 'title author images seller');
 
     if (!order) {
       return res.status(404).json({ message: 'Order not found' });
@@ -248,7 +403,7 @@ exports.getOrderById = async (req, res) => {
   }
 };
 
-// Cancel order (only if status is 'pending' or 'confirmed')
+// Cancel order
 exports.cancelOrder = async (req, res) => {
   try {
     const { orderId } = req.params;
@@ -266,8 +421,8 @@ exports.cancelOrder = async (req, res) => {
       return res.status(403).json({ message: 'Unauthorized' });
     }
 
-    // Only allow cancellation if status is pending or confirmed
-    if (!['pending', 'confirmed'].includes(order.status)) {
+    // Only allow cancellation if status is pending
+    if (!['pending'].includes(order.status)) {
       return res.status(400).json({ 
         message: `Cannot cancel order with status ${order.status}` 
       });
@@ -306,6 +461,8 @@ exports.getAllOrders = async (req, res) => {
     const orders = await Order.find()
       .populate('items.book')
       .populate('user', 'name email phone')
+      .populate('exchangeRequest.requestedBook', 'title author images')
+      .populate('exchangeRequest.offeredBook', 'title author images seller')
       .sort({ createdAt: -1 });
 
     res.status(200).json({
@@ -324,7 +481,7 @@ exports.updateOrderStatus = async (req, res) => {
     const { orderId } = req.params;
     const { status, reason } = req.body;
 
-    const validStatuses = ['pending', 'confirmed', 'processing', 'delivered', 'cancelled'];
+    const validStatuses = ['pending', 'processing', 'delivered', 'cancelled'];
     if (!validStatuses.includes(status)) {
       return res.status(400).json({ message: 'Invalid status' });
     }
@@ -490,6 +647,8 @@ exports.getSellerOrders = async (req, res) => {
       .populate('items.book')
       .populate('user', 'name email phone address')
       .populate('sellers.sellerId', 'name')
+      .populate('exchangeRequest.requestedBook', 'title author images')
+      .populate('exchangeRequest.offeredBook', 'title author images seller')
       .sort({ createdAt: -1 });
 
     // Filter items to only show items from this seller
@@ -508,7 +667,10 @@ exports.getSellerOrders = async (req, res) => {
         paymentMethod: order.paymentMethod,
         createdAt: order.createdAt,
         statusHistory: order.statusHistory,
-        sellerData: sellerData
+        sellerData: sellerData,
+        orderType: order.orderType,
+        exchangeRequest: order.exchangeRequest,
+        notes: order.notes
       };
     });
 
@@ -529,7 +691,7 @@ exports.updateSellerOrderStatus = async (req, res) => {
     const { status, reason } = req.body;
     const sellerId = req.user._id;
 
-    const validStatuses = ['pending', 'confirmed', 'processing', 'delivered', 'cancelled'];
+    const validStatuses = ['pending', 'processing', 'delivered', 'cancelled'];
     if (!validStatuses.includes(status)) {
       return res.status(400).json({ message: 'Invalid status' });
     }
@@ -619,6 +781,62 @@ exports.updateSellerOrderStatus = async (req, res) => {
       order
     });
 
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+};
+
+exports.confirmExchangeCompletion = async (req, res) => {
+  try {
+    const { orderId } = req.params;
+    const userId = req.user._id;
+
+    const order = await Order.findById(orderId)
+      .populate('user', 'name')
+      .populate('sellers.sellerId', 'name');
+
+    if (!order || order.orderType !== 'exchange') {
+      return res.status(404).json({ message: 'Exchange request not found' });
+    }
+
+    const sellerEntry = order.sellers.find((seller) => seller.sellerId._id.toString() === userId.toString());
+    const isBuyer = order.user._id.toString() === userId.toString();
+
+    if (!sellerEntry && !isBuyer) {
+      return res.status(403).json({ message: 'Unauthorized' });
+    }
+
+    if (order.status !== 'processing' && order.status !== 'delivered') {
+      return res.status(400).json({ message: 'Exchange must be accepted before it can be completed' });
+    }
+
+    if (isBuyer) {
+      order.exchangeRequest.buyerConfirmed = true;
+    }
+
+    if (sellerEntry) {
+      order.exchangeRequest.sellerConfirmed = true;
+    }
+
+    if (order.exchangeRequest.buyerConfirmed && order.exchangeRequest.sellerConfirmed) {
+      order.status = 'delivered';
+      order.deliveredAt = new Date();
+      order.exchangeRequest.completedAt = new Date();
+      order.statusHistory.push({
+        status: 'delivered',
+        changedAt: new Date(),
+        changedBy: userId,
+        reason: 'Both users marked the exchange as successful'
+      });
+    }
+
+    await order.save();
+
+    res.status(200).json({
+      success: true,
+      message: 'Exchange confirmation saved',
+      order
+    });
   } catch (error) {
     res.status(500).json({ message: error.message });
   }

@@ -8,9 +8,21 @@ import {
   sendMessage
 } from '../api';
 import { connectSocket, getSocket } from '../socket';
+import getImageUrl from '../utils/getImageUrl';
 import './ChatWindow.css';
 
 const getCurrentUser = () => JSON.parse(localStorage.getItem('bookshareUser') || 'null');
+const notifyChatUpdate = (conversationId) => {
+  if (!conversationId) {
+    return;
+  }
+
+  window.dispatchEvent(
+    new CustomEvent('bookshare-chat-updated', {
+      detail: { conversationId }
+    })
+  );
+};
 
 const isConversationUnread = (conversation, userId) =>
   Number(conversation?.unreadCount?.[userId] || 0) > 0;
@@ -23,8 +35,11 @@ const ChatWindow = ({ conversation, onBack, token }) => {
   const [selectedConversation, setSelectedConversation] = useState(conversation);
   const [typing, setTyping] = useState(false);
   const [sending, setSending] = useState(false);
+  const [selectedImage, setSelectedImage] = useState(null);
+  const [imagePreview, setImagePreview] = useState(null);
   const messagesEndRef = useRef(null);
   const typingTimeoutRef = useRef(null);
+  const imageInputRef = useRef(null);
   const currentUser = getCurrentUser();
 
   useEffect(() => {
@@ -41,6 +56,20 @@ const ChatWindow = ({ conversation, onBack, token }) => {
     if (selectedConversation?._id) {
       loadMessages(selectedConversation._id);
     }
+  }, [selectedConversation?._id]);
+
+  useEffect(() => {
+    const handleChatUpdated = async (event) => {
+      const updatedConversationId = event.detail?.conversationId;
+      await loadConversations();
+
+      if (updatedConversationId && updatedConversationId === selectedConversation?._id) {
+        await loadMessages(updatedConversationId, false);
+      }
+    };
+
+    window.addEventListener('bookshare-chat-updated', handleChatUpdated);
+    return () => window.removeEventListener('bookshare-chat-updated', handleChatUpdated);
   }, [selectedConversation?._id]);
 
   useEffect(() => {
@@ -63,6 +92,7 @@ const ChatWindow = ({ conversation, onBack, token }) => {
           }
           return [...prev, data.message];
         });
+        notifyChatUpdate(selectedConversation._id);
         setTyping(false);
         await handleMarkConversationAsRead(selectedConversation);
       }
@@ -78,6 +108,7 @@ const ChatWindow = ({ conversation, onBack, token }) => {
           }
           return [...prev, data.message];
         });
+        notifyChatUpdate(selectedConversation._id);
       }
     };
 
@@ -222,9 +253,29 @@ const ChatWindow = ({ conversation, onBack, token }) => {
     }, 1200);
   };
 
+  const handleImageSelect = (event) => {
+    const file = event.target.files?.[0];
+    if (file && file.type.startsWith('image/')) {
+      setSelectedImage(file);
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setImagePreview(reader.result);
+      };
+      reader.readAsDataURL(file);
+    }
+  };
+
+  const clearImageSelection = () => {
+    setSelectedImage(null);
+    setImagePreview(null);
+    if (imageInputRef.current) {
+      imageInputRef.current.value = '';
+    }
+  };
+
   const handleSendMessage = async (event) => {
     event.preventDefault();
-    if (!inputValue.trim() || !selectedConversation || sending) {
+    if ((!inputValue.trim() && !selectedImage) || !selectedConversation || sending) {
       return;
     }
 
@@ -241,15 +292,40 @@ const ChatWindow = ({ conversation, onBack, token }) => {
     emitTypingState(false);
 
     try {
-      const response = await sendMessage(selectedConversation._id, recipient._id, messageText);
-      const newMessage = response.data.message;
+      // Create FormData for file upload
+      const formData = new FormData();
+      formData.append('conversationId', selectedConversation._id);
+      formData.append('receiverId', recipient._id);
+      if (messageText) {
+        formData.append('text', messageText);
+      }
+      if (selectedImage) {
+        formData.append('image', selectedImage);
+      }
+
+      const response = await fetch('/api/messages/send', {
+        method: 'POST',
+        headers: {
+          Authorization: `Bearer ${token}`
+        },
+        body: formData
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to send message');
+      }
+
+      const data = await response.json();
+      const newMessage = data.message;
 
       setMessages((prev) => {
         if (prev.some((message) => message._id === newMessage._id)) {
           return prev;
         }
+
         return [...prev, newMessage];
       });
+      notifyChatUpdate(selectedConversation._id);
 
       const socket = getSocket();
       socket?.emit('send-message', {
@@ -260,6 +336,7 @@ const ChatWindow = ({ conversation, onBack, token }) => {
         message: newMessage
       });
 
+      clearImageSelection();
       await loadConversations();
     } catch (error) {
       console.error('Failed to send message:', error);
@@ -278,6 +355,7 @@ const ChatWindow = ({ conversation, onBack, token }) => {
             : message
         )
       );
+      notifyChatUpdate(selectedConversation?._id);
       await loadConversations();
     } catch (error) {
       console.error('Failed to delete message:', error);
@@ -335,7 +413,7 @@ const ChatWindow = ({ conversation, onBack, token }) => {
               >
                 <div className="conv-avatar">
                   {participant?.profilePicture ? (
-                    <img src={participant.profilePicture} alt={participant.name} />
+                    <img src={getImageUrl(participant.profilePicture)} alt={participant.name} />
                   ) : (
                     <div className="avatar-placeholder">
                       {participant?.name?.charAt(0).toUpperCase()}
@@ -388,7 +466,7 @@ const ChatWindow = ({ conversation, onBack, token }) => {
                       {!isSender && (
                         <div className="message-avatar">
                           {message.sender?.profilePicture ? (
-                            <img src={message.sender.profilePicture} alt={message.sender.name} />
+                            <img src={getImageUrl(message.sender.profilePicture)} alt={message.sender.name} />
                           ) : (
                             <div className="avatar-sm">
                               {message.sender?.name?.charAt(0).toUpperCase()}
@@ -398,9 +476,23 @@ const ChatWindow = ({ conversation, onBack, token }) => {
                       )}
 
                       <div className="message-bubble">
-                        <p className="message-text">
-                          {message.isDeleted ? '[Message deleted]' : message.text}
-                        </p>
+                        {message.image && (
+                          <img
+                            src={getImageUrl(message.image)}
+                            alt="Message"
+                            style={{
+                              maxWidth: '200px',
+                              maxHeight: '200px',
+                              borderRadius: '8px',
+                              marginBottom: message.text ? '8px' : '0'
+                            }}
+                          />
+                        )}
+                        {message.text && (
+                          <p className="message-text">
+                            {message.isDeleted ? '[Message deleted]' : message.text}
+                          </p>
+                        )}
                         <div className="message-meta">
                           <span className="message-time">
                             {new Date(message.createdAt).toLocaleTimeString([], {
@@ -440,16 +532,79 @@ const ChatWindow = ({ conversation, onBack, token }) => {
             </div>
 
             <form className="chat-input-area" onSubmit={handleSendMessage}>
-              <input
-                type="text"
-                placeholder="Type a message..."
-                value={inputValue}
-                onChange={handleInputChange}
-                disabled={loading || sending}
-              />
-              <button type="submit" disabled={loading || sending || !inputValue.trim()}>
-                {sending ? 'Sending...' : 'Send'}
-              </button>
+              {imagePreview && (
+                <div style={{
+                  padding: '8px',
+                  borderBottom: '1px solid #ddd',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '8px',
+                  backgroundColor: '#f5f5f5'
+                }}>
+                  <img
+                    src={imagePreview}
+                    alt="Selected"
+                    style={{
+                      maxHeight: '40px',
+                      maxWidth: '40px',
+                      borderRadius: '4px'
+                    }}
+                  />
+                  <button
+                    type="button"
+                    onClick={clearImageSelection}
+                    style={{
+                      background: 'none',
+                      border: 'none',
+                      color: '#999',
+                      cursor: 'pointer',
+                      fontSize: '16px',
+                      padding: '0'
+                    }}
+                  >
+                    ✕
+                  </button>
+                </div>
+              )}
+              <div style={{ display: 'flex', gap: '8px', alignItems: 'stretch' }}>
+                <input
+                  type="text"
+                  placeholder="Type a message..."
+                  value={inputValue}
+                  onChange={handleInputChange}
+                  disabled={loading || sending}
+                />
+                <input
+                  ref={imageInputRef}
+                  type="file"
+                  accept="image/*"
+                  onChange={handleImageSelect}
+                  style={{ display: 'none' }}
+                  disabled={loading || sending}
+                />
+                <button
+                  type="button"
+                  onClick={() => imageInputRef.current?.click()}
+                  disabled={loading || sending}
+                  title="Attach image"
+                  style={{
+                    background: 'none',
+                    border: 'none',
+                    cursor: 'pointer',
+                    fontSize: '18px',
+                    padding: '0 8px',
+                    color: selectedImage ? '#007bff' : '#999'
+                  }}
+                >
+                  📎
+                </button>
+                <button
+                  type="submit"
+                  disabled={loading || sending || (!inputValue.trim() && !selectedImage)}
+                >
+                  {sending ? 'Sending...' : 'Send'}
+                </button>
+              </div>
             </form>
           </>
         ) : (

@@ -1,27 +1,32 @@
 import { useState, useEffect } from 'react'
 import { addToCart, addToWishlist, getCart, getWishlist, removeFromCart, removeFromWishlist, searchBooks } from '../api'
 import SearchFilters from './SearchFilters'
+import getImageUrl from '../utils/getImageUrl'
 
-function SearchResults({ searchQuery, onBack, token, onShowCart, onShowWishlist, onItemClick }) {
+const DEFAULT_FILTERS = {
+  category: [],
+  condition: [],
+  minPrice: null,
+  maxPrice: null,
+  location: '',
+  minRating: null,
+  sortBy: 'newest'
+}
+
+function SearchResults({ searchQuery, initialFilters = DEFAULT_FILTERS, onBack, token, onItemClick }) {
   const [books, setBooks] = useState([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
   const [totalBooks, setTotalBooks] = useState(0)
-  const [hasMore, setHasMore] = useState(false)
-  const [currentPage, setCurrentPage] = useState(1)
   const [cartItems, setCartItems] = useState([])
   const [wishlistItems, setWishlistItems] = useState([])
   const [showCartAdded, setShowCartAdded] = useState({})
 
-  const [filters, setFilters] = useState({
-    category: [],
-    condition: [],
-    minPrice: null,
-    maxPrice: null,
-    location: '',
-    minRating: null,
-    sortBy: 'newest'
-  })
+  const [filters, setFilters] = useState(initialFilters)
+
+  useEffect(() => {
+    setFilters({ ...DEFAULT_FILTERS, ...initialFilters })
+  }, [initialFilters])
 
   // Fetch cart and wishlist items
   useEffect(() => {
@@ -56,7 +61,7 @@ function SearchResults({ searchQuery, onBack, token, onShowCart, onShowWishlist,
       const params = {
         query: searchQuery,
         page: 1,
-        limit: 12,
+        limit: 1000,
         sortBy: filters.sortBy
       }
 
@@ -70,8 +75,6 @@ function SearchResults({ searchQuery, onBack, token, onShowCart, onShowWishlist,
       const response = await searchBooks(params)
       setBooks(response.data.books)
       setTotalBooks(response.data.pagination.totalBooks)
-      setHasMore(response.data.pagination.hasMore)
-      setCurrentPage(1)
     } catch (err) {
       setError('Failed to fetch search results')
       console.error(err)
@@ -179,10 +182,10 @@ function SearchResults({ searchQuery, onBack, token, onShowCart, onShowWishlist,
                       onClick={() => onItemClick(book)}
                     >
                       {/* Image */}
-                      <div className="relative aspect-[4/3] overflow-hidden bg-gray-100">
+                      <div className="relative aspect-[9/16] overflow-hidden bg-gray-100">
                         {book.images && book.images.length > 0 ? (
                           <img
-                            src={book.images[0]}
+                            src={getImageUrl(book.images[0])}
                             alt={book.title}
                             className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
                           />
@@ -215,6 +218,7 @@ function SearchResults({ searchQuery, onBack, token, onShowCart, onShowWishlist,
                         <div className="text-sm text-gray-600 mb-4 flex-grow">
                           <p className="mb-1">📍 {book.location}</p>
                           <p>Condition: <span className="capitalize">{book.condition}</span></p>
+                          <p>Category: <span>{Array.isArray(book.category) ? book.category.join(', ') : book.category}</span></p>
                         </div>
 
                         {/* Price */}

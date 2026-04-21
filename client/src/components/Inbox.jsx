@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { deleteConversation, getConversations, searchConversations } from '../api';
 import { connectSocket, getSocket } from '../socket';
+import getImageUrl from '../utils/getImageUrl';
 import './Inbox.css';
 
 const Inbox = ({ onSelectConversation, onBack, token }) => {
@@ -46,6 +47,15 @@ const Inbox = ({ onSelectConversation, onBack, token }) => {
   useEffect(() => {
     filterConversations();
   }, [conversations, searchQuery]);
+
+  useEffect(() => {
+    const handleChatUpdated = () => {
+      fetchConversations();
+    };
+
+    window.addEventListener('bookshare-chat-updated', handleChatUpdated);
+    return () => window.removeEventListener('bookshare-chat-updated', handleChatUpdated);
+  }, [token]);
 
   const fetchConversations = async () => {
     try {
@@ -145,7 +155,7 @@ const Inbox = ({ onSelectConversation, onBack, token }) => {
               >
                 <div className="participant-avatar">
                   {otherParticipant?.profilePicture ? (
-                    <img src={otherParticipant.profilePicture} alt={otherParticipant.name} />
+                    <img src={getImageUrl(otherParticipant.profilePicture)} alt={otherParticipant.name} />
                   ) : (
                     <div className="avatar-placeholder">
                       {otherParticipant?.name?.charAt(0).toUpperCase()}

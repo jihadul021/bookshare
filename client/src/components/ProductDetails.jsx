@@ -1,13 +1,19 @@
 import { useState, useEffect } from 'react'
 import api from '../api'
 import FloatingChat from './FloatingChat'
+import getImageUrl from '../utils/getImageUrl'
 
-function ProductDetails({ item, onBack, token, onViewSeller }) {
+function ProductDetails({ item, onBack, token, onViewSeller, onSelectBook, onBuyNow, onRequestExchange }) {
   const [isInCart, setIsInCart] = useState(false)
   const [isInWishlist, setIsInWishlist] = useState(false)
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState('')
+  const [notice, setNotice] = useState('')
   const [showChatWindow, setShowChatWindow] = useState(false)
+  const [quantity, setQuantity] = useState(1)
+  const [relatedBooks, setRelatedBooks] = useState([])
+  const [loadingRelated, setLoadingRelated] = useState(false)
+  const [selectedImageIndex, setSelectedImageIndex] = useState(0)
 
   // Check if item is in cart/wishlist on mount
   useEffect(() => {
@@ -15,6 +21,15 @@ function ProductDetails({ item, onBack, token, onViewSeller }) {
       checkCartAndWishlist()
     }
   }, [token, item?._id])
+
+  useEffect(() => {
+    if (item?._id) {
+      setQuantity(1)
+      setNotice('')
+      setSelectedImageIndex(0)
+      fetchRelatedBooks()
+    }
+  }, [item?._id])
 
   const checkCartAndWishlist = async () => {
     try {
@@ -37,6 +52,17 @@ function ProductDetails({ item, onBack, token, onViewSeller }) {
   const rating = item.rating || 0
   const numReviews = item.numReviews || 0
   const isVerified = seller.isverified || false
+  const maxQuantity = Math.max(1, item.stock || 1)
+  const bookImages = Array.isArray(item.images) ? item.images.filter(Boolean) : []
+  const activeImage = bookImages[selectedImageIndex] || bookImages[0] || null
+  const currentUserId = (() => {
+    try {
+      return JSON.parse(localStorage.getItem('bookshareUser') || '{}')._id || null
+    } catch {
+      return null
+    }
+  })()
+  const isOwnListing = Boolean(currentUserId && seller._id && currentUserId === seller._id)
 
   const handleAddToCart = async () => {
     if (!token) {
@@ -57,7 +83,7 @@ function ProductDetails({ item, onBack, token, onViewSeller }) {
       } else {
         await api.post(
           '/api/cart/add',
-          { bookId: item._id, quantity: 1 },
+          { bookId: item._id, quantity },
           { headers: { Authorization: `Bearer ${token}` } }
         )
         setIsInCart(true)
@@ -67,6 +93,58 @@ function ProductDetails({ item, onBack, token, onViewSeller }) {
     } finally {
       setIsLoading(false)
     }
+  }
+
+  const fetchRelatedBooks = async () => {
+    try {
+      setLoadingRelated(true)
+      const categoryParams = {
+        page: 1,
+        limit: 12
+      }
+
+      if (Array.isArray(item.category) && item.category.length > 0) {
+        categoryParams.category = item.category
+      }
+
+      const requests = [
+        api.get('/api/books/search', { params: categoryParams })
+      ]
+
+      if (item.author) {
+        requests.push(
+          api.get('/api/books/search', {
+            params: {
+              query: item.author,
+              page: 1,
+              limit: 12
+            }
+          })
+        )
+      }
+
+      const responses = await Promise.all(requests)
+      const merged = responses
+        .flatMap((response) => response.data.books || [])
+        .filter((book) => book._id !== item._id)
+        .reduce((accumulator, book) => {
+          if (!accumulator.some((candidate) => candidate._id === book._id)) {
+            accumulator.push(book)
+          }
+          return accumulator
+        }, [])
+
+      setRelatedBooks(merged.slice(0, 6))
+    } catch (requestError) {
+      console.error('Failed to load related books:', requestError)
+      setRelatedBooks([])
+    } finally {
+      setLoadingRelated(false)
+    }
+  }
+
+  const handleBuyNow = () => {
+    onBuyNow?.(item, quantity)
   }
 
   const handleAddToWishlist = async () => {
@@ -116,22 +194,82 @@ function ProductDetails({ item, onBack, token, onViewSeller }) {
         </div>
       )}
 
+      {notice && (
+        <div className="mb-6 p-4 bg-green-50 border border-green-200 rounded-lg text-green-800">
+          {notice}
+        </div>
+      )}
+
       <div className="flex flex-col lg:flex-row gap-10">
 
         {/* LEFT COLUMN */}
         <div className="w-full lg:w-2/3">
 
-          {/* Image */}
-          <div className="rounded-2xl overflow-hidden aspect-[16/9] mb-8 bg-gray-200">
-            {item.images && item.images.length > 0 ? (
-              <img
-                src={item.images[0]}
-                alt={item.title}
-                className="w-full h-full object-cover"
-              />
-            ) : (
-              <div className="w-full h-full flex items-center justify-center text-gray-400">
-                No image available
+          {/* Image Gallery */}
+          <div className="mb-8">
+            <div className="relative rounded-2xl overflow-hidden aspect-[3/4] max-w-sm w-full bg-gray-200 mx-auto lg:mx-0">
+              {activeImage ? (
+                <img
+                  src={getImageUrl(activeImage)}
+                  alt={`${item.title} cover ${selectedImageIndex + 1}`}
+                  className="w-full h-full object-cover"
+                />
+              ) : (
+                <div className="w-full h-full flex items-center justify-center text-gray-400">
+                  No image available
+                </div>
+              )}
+
+              {bookImages.length > 1 && (
+                <>
+                  <button
+                    type="button"
+                    onClick={() => setSelectedImageIndex((currentIndex) => (currentIndex === 0 ? bookImages.length - 1 : currentIndex - 1))}
+                    className="absolute left-3 top-1/2 -translate-y-1/2 w-10 h-10 rounded-full bg-white/90 hover:bg-white text-gray-800 shadow flex items-center justify-center"
+                    aria-label="Previous image"
+                  >
+                    ‹
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setSelectedImageIndex((currentIndex) => (currentIndex === bookImages.length - 1 ? 0 : currentIndex + 1))}
+                    className="absolute right-3 top-1/2 -translate-y-1/2 w-10 h-10 rounded-full bg-white/90 hover:bg-white text-gray-800 shadow flex items-center justify-center"
+                    aria-label="Next image"
+                  >
+                    ›
+                  </button>
+                  <div className="absolute bottom-3 right-3 px-3 py-1 rounded-full bg-black/65 text-white text-xs font-medium">
+                    {selectedImageIndex + 1} / {bookImages.length}
+                  </div>
+                </>
+              )}
+            </div>
+
+            {bookImages.length > 1 && (
+              <div className="mt-4 flex gap-3 overflow-x-auto pb-1">
+                {bookImages.map((image, index) => {
+                  const isActive = index === selectedImageIndex
+
+                  return (
+                    <button
+                      key={`${image}-${index}`}
+                      type="button"
+                      onClick={() => setSelectedImageIndex(index)}
+                      className={`shrink-0 rounded-xl overflow-hidden border-2 transition-all ${
+                        isActive ? 'border-orange-500 shadow-md' : 'border-transparent hover:border-orange-200'
+                      }`}
+                      aria-label={`View image ${index + 1}`}
+                    >
+                      <div className="w-16 sm:w-20 aspect-[3/4] bg-gray-100">
+                        <img
+                          src={getImageUrl(image)}
+                          alt={`${item.title} thumbnail ${index + 1}`}
+                          className="w-full h-full object-cover"
+                        />
+                      </div>
+                    </button>
+                  )
+                })}
               </div>
             )}
           </div>
@@ -221,11 +359,19 @@ function ProductDetails({ item, onBack, token, onViewSeller }) {
               <button
                 onClick={(e) => {
                   e.stopPropagation()
-                  setShowChatWindow(true)
+                  if (!isOwnListing) {
+                    setShowChatWindow(true)
+                  }
                 }}
-                className="hidden sm:block border border-blue-300 bg-blue-50 hover:bg-blue-100 text-blue-600 hover:text-blue-700 font-medium py-2 px-6 rounded-xl transition-colors"
+                disabled={isOwnListing}
+                className={`hidden sm:block font-medium py-2 px-6 rounded-xl transition-colors ${
+                  isOwnListing
+                    ? 'border border-gray-200 bg-gray-100 text-gray-400 cursor-not-allowed'
+                    : 'border border-blue-300 bg-blue-50 hover:bg-blue-100 text-blue-600 hover:text-blue-700'
+                }`}
+                title={isOwnListing ? 'You cannot chat with yourself' : 'Chat with seller'}
               >
-                💬 Chat
+                💬 {isOwnListing ? 'Your Listing' : 'Chat'}
               </button>
               <button
                 onClick={(e) => {
@@ -272,6 +418,13 @@ function ProductDetails({ item, onBack, token, onViewSeller }) {
                   <p className="text-gray-600">{item.location}</p>
                 </div>
               </div> 
+              <div className="flex items-start">
+                <span className="text-green-500 mr-3">✓</span>
+                <div>
+                  <p className="font-semibold text-gray-900">Stock Left</p>
+                  <p className="text-gray-600">{item.stock ?? 0} copy{item.stock === 1 ? '' : 'ies'}</p>
+                </div>
+              </div>
               {item.exchangeAvailable && (
                 <div className="flex items-start">
                   <span className="text-green-500 mr-3">✓</span>
@@ -290,6 +443,42 @@ function ProductDetails({ item, onBack, token, onViewSeller }) {
             </div>
           </div>
 
+          <div className="mb-8">
+            <div className="flex items-center justify-between mb-4">
+              <h2 className="text-2xl font-bold text-gray-900">Related Books</h2>
+              <p className="text-sm text-gray-500">Matched by author and category</p>
+            </div>
+            {loadingRelated ? (
+              <div className="text-gray-500">Loading suggestions...</div>
+            ) : relatedBooks.length === 0 ? (
+              <div className="text-gray-500">No related books found yet.</div>
+            ) : (
+              <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-4">
+                {relatedBooks.map((book) => (
+                  <button
+                    key={book._id}
+                    type="button"
+                    onClick={() => onSelectBook?.(book)}
+                    className="text-left border border-gray-200 rounded-2xl bg-white hover:border-orange-300 hover:shadow-md transition-all overflow-hidden"
+                  >
+                    <div className="aspect-[3/4] bg-gray-100">
+                      {book.images?.[0] ? (
+                        <img src={getImageUrl(book.images[0])} alt={book.title} className="w-full h-full object-cover" />
+                      ) : (
+                        <div className="w-full h-full flex items-center justify-center text-gray-400">No image</div>
+                      )}
+                    </div>
+                    <div className="p-4">
+                      <h3 className="font-semibold text-gray-900">{book.title}</h3>
+                      <p className="text-sm text-gray-500 mb-2">by {book.author}</p>
+                      <p className="text-orange-600 font-bold">৳{book.price}</p>
+                    </div>
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
+
         </div>
 
         {/* RIGHT COLUMN — Purchase Card */}
@@ -302,11 +491,48 @@ function ProductDetails({ item, onBack, token, onViewSeller }) {
               <span className="text-4xl font-bold text-orange-600 ml-1">{item.price}</span>
             </div>
 
+            <div className="mb-4">
+              <p className="text-sm font-semibold text-gray-700 mb-2">Stock Left</p>
+              <p className="text-lg text-gray-900">{item.stock ?? 0} available</p>
+            </div>
+
+            <div className="mb-6">
+              <label className="text-sm font-semibold text-gray-700 mb-2 block">Quantity</label>
+              <div className="flex items-center gap-3">
+                <button
+                  type="button"
+                  className="w-11 h-11 rounded-xl border border-gray-300 text-xl font-bold text-gray-700"
+                  onClick={() => setQuantity((currentQuantity) => Math.max(1, currentQuantity - 1))}
+                >
+                  -
+                </button>
+                <input
+                  type="number"
+                  min="1"
+                  max={maxQuantity}
+                  value={quantity}
+                  onChange={(event) => {
+                    const nextQuantity = Number(event.target.value || 1)
+                    setQuantity(Math.min(maxQuantity, Math.max(1, nextQuantity)))
+                  }}
+                  className="w-20 rounded-xl border border-gray-300 text-center py-3"
+                />
+                <button
+                  type="button"
+                  className="w-11 h-11 rounded-xl border border-gray-300 text-xl font-bold text-gray-700"
+                  onClick={() => setQuantity((currentQuantity) => Math.min(maxQuantity, currentQuantity + 1))}
+                >
+                  +
+                </button>
+              </div>
+            </div>
+
             {/* Action Buttons */}
             <div className="flex gap-3">
               <button
-                disabled
-                className="flex-1 bg-orange-500 text-white opacity-90 cursor-not-allowed font-bold py-4 px-6 rounded-xl transition-colors text-lg flex items-center justify-center gap-2"
+                onClick={handleBuyNow}
+                disabled={item.stock <= 0}
+                className="flex-1 bg-orange-500 text-white disabled:opacity-50 disabled:cursor-not-allowed font-bold py-4 px-6 rounded-xl transition-colors text-lg flex items-center justify-center gap-2 hover:bg-orange-600"
               >
                 <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path
@@ -322,6 +548,7 @@ function ProductDetails({ item, onBack, token, onViewSeller }) {
 
             {item.exchangeAvailable && (
               <button
+                onClick={() => onRequestExchange?.(item)}
                 className="w-full mt-3 bg-white border-2 border-orange-500 text-orange-600 hover:bg-orange-50 font-bold py-4 px-6 rounded-xl transition-colors text-lg flex items-center justify-center gap-2"
               >
                 <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -334,7 +561,7 @@ function ProductDetails({ item, onBack, token, onViewSeller }) {
             {/* Info Box */}
             <div className="mt-6 p-4 bg-blue-50 border border-blue-200 rounded-lg">
               <p className="text-sm text-blue-800">
-                <strong>Note:</strong> Add to cart to proceed with purchase
+                <strong>Note:</strong> Buy now goes straight to checkout with the selected quantity.
               </p>
             </div>
 
@@ -344,7 +571,7 @@ function ProductDetails({ item, onBack, token, onViewSeller }) {
       </div>
 
       {/* Floating Chat Window */}
-      {showChatWindow && (
+      {showChatWindow && !isOwnListing && (
         <FloatingChat
           sellerId={seller._id}
           sellerName={seller.name}

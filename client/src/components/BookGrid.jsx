@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react'
 import api from '../api'
+import getImageUrl from '../utils/getImageUrl'
 
 function ItemCard({ item, onItemClick, token, onAddToCart, onAddToWishlist, isInCart, isInWishlist }) {
   const [showCartAdded, setShowCartAdded] = useState(false)
@@ -36,10 +37,10 @@ function ItemCard({ item, onItemClick, token, onAddToCart, onAddToWishlist, isIn
       onClick={() => onItemClick(item)}
     >
       {/* Image */}
-      <div className="relative aspect-[4/3] overflow-hidden bg-gray-100">
+      <div className="relative aspect-[3/4] overflow-hidden bg-gray-100">
         {item.images && item.images.length > 0 ? (
           <img
-            src={item.images[0]}
+            src={getImageUrl(item.images[0])}
             alt={item.title}
             className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
           />
@@ -70,6 +71,7 @@ function ItemCard({ item, onItemClick, token, onAddToCart, onAddToWishlist, isIn
         <div className="text-sm text-gray-600 mb-4 flex-grow">
           <p className="mb-1">📍 {item.location}</p>
           <p>Condition: <span className="capitalize">{item.condition}</span></p>
+          <p>Category: <span>{Array.isArray(item.category) ? item.category.join(', ') : item.category}</span></p>
         </div>
 
         {/* Price */}

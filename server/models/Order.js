@@ -23,6 +23,11 @@ const orderSchema = new mongoose.Schema({
     unique: true,
     required: true
   },
+  orderType: {
+    type: String,
+    enum: ['purchase', 'exchange'],
+    default: 'purchase'
+  },
   user: {
     type: mongoose.Schema.Types.ObjectId,
     ref: 'User',
@@ -43,7 +48,7 @@ const orderSchema = new mongoose.Schema({
     }],
     status: {
       type: String,
-      enum: ['pending', 'confirmed', 'processing', 'delivered', 'cancelled'],
+      enum: ['pending', 'processing', 'delivered', 'cancelled'],
       default: 'pending'
     },
     statusHistory: [{
@@ -123,8 +128,34 @@ const orderSchema = new mongoose.Schema({
   // Order Status
   status: {
     type: String,
-    enum: ['pending', 'confirmed', 'processing', 'delivered', 'cancelled'],
+    enum: ['pending', 'processing', 'delivered', 'cancelled'],
     default: 'pending'
+  },
+
+  exchangeRequest: {
+    requestedBook: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'Book',
+      default: null
+    },
+    offeredBook: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'Book',
+      default: null
+    },
+    details: {
+      type: String,
+      default: ''
+    },
+    buyerConfirmed: {
+      type: Boolean,
+      default: false
+    },
+    sellerConfirmed: {
+      type: Boolean,
+      default: false
+    },
+    completedAt: Date
   },
   
   // Status History

@@ -14,6 +14,7 @@ const {
   getChatSummary
 } = require('../controllers/messageController');
 const authMiddleware = require('../middleware/authMiddleware');
+const { uploadSingleImage } = require('../middleware/uploadMiddleware');
 
 // All routes require authentication
 router.use(authMiddleware);
@@ -27,7 +28,7 @@ router.get('/search', searchConversations);
 // Message routes
 router.get('/unread-count', getUnreadCount);
 router.get('/:conversationId', getMessages);
-router.post('/send', sendMessage);
+router.post('/send', uploadSingleImage, sendMessage);
 router.put('/:messageId/read', markAsRead);
 router.put('/conversations/:conversationId/read', markConversationAsRead);
 router.delete('/conversations/:conversationId', deleteConversation);

@@ -1,15 +1,14 @@
 import React, { useEffect, useState } from 'react';
-import { getSellerOrders as fetchSellerOrdersApi, updateSellerOrderStatus } from '../api';
+import { confirmExchangeCompletion, getSellerOrders as fetchSellerOrdersApi, updateSellerOrderStatus } from '../api';
+import FloatingChat from './FloatingChat';
 import './SellerOrderManagement.css';
 
-const STATUS_OPTIONS = ['pending', 'confirmed', 'processing', 'delivered', 'cancelled'];
+const STATUS_OPTIONS = ['pending', 'processing', 'delivered', 'cancelled'];
 
 const getStatusColor = (status) => {
   switch (status) {
     case 'pending':
       return '#FF9800';
-    case 'confirmed':
-      return '#2196F3';
     case 'processing':
       return '#9C27B0';
     case 'delivered':
@@ -32,23 +31,21 @@ const formatDate = (date) =>
 
 const formatMoney = (amount) => `৳${Number(amount || 0).toFixed(2)}`;
 
-const getVisibleStatuses = (currentStatus) => {
-  if (currentStatus === 'delivered' || currentStatus === 'cancelled') {
-    return [currentStatus];
-  }
-
-  return STATUS_OPTIONS.filter((status) => status !== 'pending' || currentStatus === 'pending');
-};
-
 const SellerOrderManagement = ({ onBack }) => {
   const [orders, setOrders] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [expandedOrder, setExpandedOrder] = useState(null);
   const [updatingOrderId, setUpdatingOrderId] = useState(null);
+  const [chatTarget, setChatTarget] = useState(null);
 
   useEffect(() => {
     fetchSellerOrders();
+  }, []);
+
+  useEffect(() => {
+    const intervalId = window.setInterval(fetchSellerOrders, 7000);
+    return () => window.clearInterval(intervalId);
   }, []);
 
   const fetchSellerOrders = async () => {
@@ -56,7 +53,8 @@ const SellerOrderManagement = ({ onBack }) => {
       setLoading(true);
       setError('');
       const response = await fetchSellerOrdersApi();
-      setOrders(response.data.orders || []);
+      const nextOrders = response.data.orders || [];
+      setOrders(nextOrders);
     } catch (requestError) {
       console.error('Error fetching seller orders:', requestError);
       setError(requestError.response?.data?.message || 'Failed to load seller orders');
@@ -90,6 +88,46 @@ const SellerOrderManagement = ({ onBack }) => {
     } finally {
       setUpdatingOrderId(null);
     }
+  };
+
+  const handleConfirmExchange = async (orderId) => {
+    try {
+      setUpdatingOrderId(orderId);
+      await confirmExchangeCompletion(orderId);
+      await fetchSellerOrders();
+    } catch (requestError) {
+      setError(requestError.response?.data?.message || 'Failed to confirm exchange');
+    } finally {
+      setUpdatingOrderId(null);
+    }
+  };
+
+  const getOrderHeading = (order) =>
+    order.orderType === 'exchange'
+      ? `Exchange Request #${order.orderNumber || order._id.slice(-8).toUpperCase()}`
+      : order.orderNumber || `Order #${order._id.slice(-8).toUpperCase()}`;
+
+  const getStatusLabel = (order, status) => {
+    if (order.orderType === 'exchange') {
+      if (status === 'processing') return 'Accepted';
+      if (status === 'delivered') return 'Exchanged Successfully';
+      if (status === 'cancelled') return 'Rejected';
+    }
+    return status.charAt(0).toUpperCase() + status.slice(1);
+  };
+
+  const getVisibleStatuses = (order, currentStatus) => {
+    if (order.orderType === 'exchange') {
+      if (currentStatus === 'pending') return ['pending', 'processing', 'cancelled'];
+      if (currentStatus === 'processing') return ['processing', 'delivered', 'cancelled'];
+      return [currentStatus];
+    }
+
+    if (currentStatus === 'delivered' || currentStatus === 'cancelled') {
+      return [currentStatus];
+    }
+
+    return STATUS_OPTIONS.filter((status) => status !== 'pending' || currentStatus === 'pending');
   };
 
   if (loading) {
@@ -130,17 +168,17 @@ const SellerOrderManagement = ({ onBack }) => {
               <div key={order._id} className="order-card">
                 <div className="order-header">
                   <div className="order-info">
-                    <h3>{order.orderNumber || `Order #${order._id.slice(-8).toUpperCase()}`}</h3>
-                    <p className="order-date">Placed {formatDate(order.createdAt)}</p>
+                    <h3>{getOrderHeading(order)}</h3>
+                    <p className="order-date">{order.orderType === 'exchange' ? 'Requested' : 'Placed'} {formatDate(order.createdAt)}</p>
                     <p className="order-meta">
-                      Payment: {order.paymentMethod === 'cash_on_delivery' ? 'Cash on Delivery' : 'Card'}
+                      Payment: {order.orderType === 'exchange' ? 'Exchange Request' : order.paymentMethod === 'cash_on_delivery' ? 'Cash on Delivery' : 'Card'}
                     </p>
                   </div>
                   <div
                     className="order-status"
                     style={{ backgroundColor: getStatusColor(sellerStatus) }}
                   >
-                    {sellerStatus.charAt(0).toUpperCase() + sellerStatus.slice(1)}
+                    {getStatusLabel(order, sellerStatus)}
                   </div>
                 </div>
 
@@ -152,17 +190,27 @@ const SellerOrderManagement = ({ onBack }) => {
                 </div>
 
                 <div className="shipping-info">
-                  <h4>Shipping Address</h4>
-                  <p>{order.shippingAddress?.fullName || 'Customer name unavailable'}</p>
-                  <p>{order.shippingAddress?.address || 'Address unavailable'}</p>
-                  <p>
-                    {[order.shippingAddress?.thana, order.shippingAddress?.district]
-                      .filter(Boolean)
-                      .join(', ')}
-                  </p>
-                  <p>{order.shippingAddress?.division || ''}</p>
-                  {order.shippingAddress?.zipCode && <p>Zip: {order.shippingAddress.zipCode}</p>}
-                  {order.shippingAddress?.phone && <p>Phone: {order.shippingAddress.phone}</p>}
+                  <h4>{order.orderType === 'exchange' ? 'Exchange Notes' : 'Shipping Address'}</h4>
+                  {order.orderType === 'exchange' ? (
+                    <>
+                      <p><strong>Requested Book:</strong> {order.exchangeRequest?.requestedBook?.title || order.items?.[0]?.book?.title}</p>
+                      <p><strong>Offered Book:</strong> {order.exchangeRequest?.offeredBook?.title || 'N/A'}</p>
+                      <p><strong>Buyer Notes:</strong> {order.exchangeRequest?.details || order.notes || 'No details provided'}</p>
+                    </>
+                  ) : (
+                    <>
+                      <p>{order.shippingAddress?.fullName || 'Customer name unavailable'}</p>
+                      <p>{order.shippingAddress?.address || 'Address unavailable'}</p>
+                      <p>
+                        {[order.shippingAddress?.thana, order.shippingAddress?.district]
+                          .filter(Boolean)
+                          .join(', ')}
+                      </p>
+                      <p>{order.shippingAddress?.division || ''}</p>
+                      {order.shippingAddress?.zipCode && <p>Zip: {order.shippingAddress.zipCode}</p>}
+                      {order.shippingAddress?.phone && <p>Phone: {order.shippingAddress.phone}</p>}
+                    </>
+                  )}
                 </div>
 
                 <div className="order-items">
@@ -194,9 +242,9 @@ const SellerOrderManagement = ({ onBack }) => {
                     className="status-select"
                     disabled={updatingOrderId === order._id || ['delivered', 'cancelled'].includes(sellerStatus)}
                   >
-                    {getVisibleStatuses(sellerStatus).map((status) => (
+                    {getVisibleStatuses(order, sellerStatus).map((status) => (
                       <option key={status} value={status}>
-                        {status.charAt(0).toUpperCase() + status.slice(1)}
+                        {getStatusLabel(order, status)}
                       </option>
                     ))}
                   </select>
@@ -204,6 +252,25 @@ const SellerOrderManagement = ({ onBack }) => {
                     <span className="status-updating">Saving...</span>
                   )}
                 </div>
+
+                {order.orderType === 'exchange' && sellerStatus === 'processing' && (
+                  <div className="status-controls">
+                    <label>Exchange Completion:</label>
+                    <button
+                      className="status-select"
+                      onClick={() => handleConfirmExchange(order._id)}
+                      disabled={updatingOrderId === order._id || order.exchangeRequest?.sellerConfirmed}
+                    >
+                      {order.exchangeRequest?.sellerConfirmed ? 'Marked By You' : 'Mark Exchanged Successfully'}
+                    </button>
+                    <button
+                      className="status-select"
+                      onClick={() => setChatTarget({ userId: order.user?._id, name: order.user?.name, bookId: order.exchangeRequest?.requestedBook?._id || order.items?.[0]?.book?._id })}
+                    >
+                      Open Chat
+                    </button>
+                  </div>
+                )}
 
                 {statusHistory.length > 0 && (
                   <div className="status-history">
@@ -238,6 +305,16 @@ const SellerOrderManagement = ({ onBack }) => {
             );
           })}
         </div>
+      )}
+
+      {chatTarget && (
+        <FloatingChat
+          sellerId={chatTarget.userId}
+          sellerName={chatTarget.name}
+          token={JSON.parse(localStorage.getItem('bookshareUser') || '{}').token}
+          bookId={chatTarget.bookId}
+          onClose={() => setChatTarget(null)}
+        />
       )}
     </div>
   );

@@ -10,7 +10,8 @@ export default function ProfilePage({
   onAddBook,
   onViewMyBooks,
   onViewOrders,
-  onViewSellerOrders
+  onViewSellerOrders,
+  onViewAdminDashboard
 }) {
   const [user, setUser] = useState(initialUser || {})
   const [isEditing, setIsEditing] = useState(false)
@@ -32,6 +33,8 @@ export default function ProfilePage({
     confirmPassword: ''
   })
 
+  const [profilePicFile, setProfilePicFile] = useState(null)
+
   useEffect(() => {
     if (!token) {
       onRequireLogin()
@@ -40,6 +43,13 @@ export default function ProfilePage({
     }
   }, [token])
 
+  // Reset to customer mode if user becomes admin
+  useEffect(() => {
+    if (user.role === 'admin' && activeProfileMode === 'seller') {
+      setActiveProfileMode('customer')
+    }
+  }, [user.role])
+
   const fetchUserProfile = async () => {
     try {
       setIsLoading(true)
@@ -47,6 +57,7 @@ export default function ProfilePage({
         headers: { Authorization: `Bearer ${token}` }
       })
       setUser(response.data)
+      // onProfileUpdated?.({ ...response.data, token })
       setFormData({
         name: response.data.name || '',
         email: response.data.email || '',
@@ -77,13 +88,10 @@ export default function ProfilePage({
   const handleProfilePicChange = (e) => {
     const file = e.target.files[0]
     if (file) {
+      setProfilePicFile(file)
       const reader = new FileReader()
       reader.onloadend = () => {
         setProfilePicPreview(reader.result)
-        setFormData(prev => ({
-          ...prev,
-          profilePicture: reader.result
-        }))
       }
       reader.readAsDataURL(file)
     }
@@ -147,7 +155,7 @@ export default function ProfilePage({
 
       // Update stored user data
       const updatedUser = { ...response.data, token }
-      onProfileUpdated(updatedUser)
+      localStorage.setItem('bookshareUser', JSON.stringify(updatedUser))
 
       setTimeout(() => setSuccess(''), 3000)
     } catch (err) {
@@ -291,74 +299,91 @@ export default function ProfilePage({
               {/* Edit Button */}
               {!isEditing ? (
                 <div className="space-y-3">
-                  <div className="grid grid-cols-2 gap-2 rounded-xl bg-gray-100 p-1">
+                  {user.role === 'admin' && (
                     <button
-                      onClick={() => setActiveProfileMode('customer')}
-                      className={`rounded-lg px-3 py-2 text-sm font-semibold transition-colors ${
-                        activeProfileMode === 'customer'
-                          ? 'bg-white text-gray-900 shadow-sm'
-                          : 'text-gray-500 hover:text-gray-800'
-                      }`}
+                      onClick={() => onViewAdminDashboard?.(user)}
+                      className="w-full bg-purple-600 hover:bg-purple-700 text-white font-semibold py-2 rounded-lg transition-colors flex items-center justify-center"
                     >
-                      Customer Profile
+                      <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6V4m0 2a2 2 0 100 4m0-4a2 2 0 110 4m-6 8a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4m6 6v10m6-2a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4" />
+                      </svg>
+                      Admin Dashboard
                     </button>
-                    <button
-                      onClick={() => setActiveProfileMode('seller')}
-                      className={`rounded-lg px-3 py-2 text-sm font-semibold transition-colors ${
-                        activeProfileMode === 'seller'
-                          ? 'bg-white text-gray-900 shadow-sm'
-                          : 'text-gray-500 hover:text-gray-800'
-                      }`}
-                    >
-                      Seller Profile
-                    </button>
-                  </div>
+                  )}
+                  {user.role !== 'admin' && (
+                    <div className="grid grid-cols-2 gap-2 rounded-xl bg-gray-100 p-1">
+                      <button
+                        onClick={() => setActiveProfileMode('customer')}
+                        className={`rounded-lg px-3 py-2 text-sm font-semibold transition-colors ${
+                          activeProfileMode === 'customer'
+                            ? 'bg-white text-gray-900 shadow-sm'
+                            : 'text-gray-500 hover:text-gray-800'
+                        }`}
+                      >
+                        Customer Profile
+                      </button>
+                      <button
+                        onClick={() => setActiveProfileMode('seller')}
+                        className={`rounded-lg px-3 py-2 text-sm font-semibold transition-colors ${
+                          activeProfileMode === 'seller'
+                            ? 'bg-white text-gray-900 shadow-sm'
+                            : 'text-gray-500 hover:text-gray-800'
+                        }`}
+                      >
+                        Seller Profile
+                      </button>
+                    </div>
+                  )}
                   <button
                     onClick={() => setIsEditing(true)}
                     className="w-full bg-orange-500 hover:bg-orange-600 text-white font-semibold py-2 rounded-lg transition-colors"
                   >
                     Edit Profile
                   </button>
-                  {activeProfileMode === 'seller' ? (
+                  {user.role !== 'admin' && (
                     <>
-                      <button
-                        onClick={onViewSellerOrders}
-                        className="w-full bg-indigo-500 hover:bg-indigo-600 text-white font-semibold py-2 rounded-lg transition-colors flex items-center justify-center"
-                      >
-                        <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                        </svg>
-                        Order Management
-                      </button>
-                      <button
-                        onClick={onAddBook}
-                        className="w-full bg-green-500 hover:bg-green-600 text-white font-semibold py-2 rounded-lg transition-colors flex items-center justify-center"
-                      >
-                        <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
-                        </svg>
-                        Add My Book
-                      </button>
-                      <button
-                        onClick={onViewMyBooks}
-                        className="w-full bg-blue-500 hover:bg-blue-600 text-white font-semibold py-2 rounded-lg transition-colors flex items-center justify-center"
-                      >
-                        <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6.253v13m0-13C6.5 6.253 2 10.998 2 17s4.5 10.747 10 10.747c5.5 0 10-4.998 10-10.747S17.5 6.253 12 6.253z" />
-                        </svg>
-                        View My Books
-                      </button>
+                      {activeProfileMode === 'seller' ? (
+                        <>
+                          <button
+                            onClick={onViewSellerOrders}
+                            className="w-full bg-indigo-500 hover:bg-indigo-600 text-white font-semibold py-2 rounded-lg transition-colors flex items-center justify-center"
+                          >
+                            <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                            </svg>
+                            Order Management
+                          </button>
+                          <button
+                            onClick={onAddBook}
+                            className="w-full bg-green-500 hover:bg-green-600 text-white font-semibold py-2 rounded-lg transition-colors flex items-center justify-center"
+                          >
+                            <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+                            </svg>
+                            Add My Book
+                          </button>
+                          <button
+                            onClick={onViewMyBooks}
+                            className="w-full bg-blue-500 hover:bg-blue-600 text-white font-semibold py-2 rounded-lg transition-colors flex items-center justify-center"
+                          >
+                            <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6.253v13m0-13C6.5 6.253 2 10.998 2 17s4.5 10.747 10 10.747c5.5 0 10-4.998 10-10.747S17.5 6.253 12 6.253z" />
+                            </svg>
+                            View My Books
+                          </button>
+                        </>
+                      ) : (
+                        <button
+                          onClick={onViewOrders}
+                          className="w-full bg-purple-500 hover:bg-purple-600 text-white font-semibold py-2 rounded-lg transition-colors flex items-center justify-center"
+                        >
+                          <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                          </svg>
+                          Order Details
+                        </button>
+                      )}
                     </>
-                  ) : (
-                    <button
-                      onClick={onViewOrders}
-                      className="w-full bg-purple-500 hover:bg-purple-600 text-white font-semibold py-2 rounded-lg transition-colors flex items-center justify-center"
-                    >
-                      <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                      </svg>
-                      Order Details
-                    </button>
                   )}
                 </div>
               ) : (
@@ -372,31 +397,47 @@ export default function ProfilePage({
           <div className="lg:col-span-2">
             {!isEditing ? (
               <>
-                <div className="space-y-6">
+                {user.role === 'admin' ? (
                   <div className="bg-white rounded-2xl shadow-lg p-6">
-                    <h2 className="text-xl font-bold text-gray-900 mb-6">
-                      {activeProfileMode === 'seller' ? 'Seller Dashboard' : 'Customer Profile'}
-                    </h2>
-                    {activeProfileMode === 'seller' ? (
-                      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                        <button
-                          onClick={onViewSellerOrders}
-                          className="rounded-xl border border-indigo-200 bg-indigo-50 px-5 py-6 text-left hover:bg-indigo-100 transition-colors"
-                        >
-                          <p className="text-sm text-indigo-600 font-semibold mb-2">Orders</p>
-                          <p className="text-lg font-bold text-gray-900">Manage customer orders</p>
-                        </button>
-                        <button
-                          onClick={onAddBook}
-                          className="rounded-xl border border-green-200 bg-green-50 px-5 py-6 text-left hover:bg-green-100 transition-colors"
-                        >
-                          <p className="text-sm text-green-600 font-semibold mb-2">Inventory</p>
-                          <p className="text-lg font-bold text-gray-900">Add a new book listing</p>
-                        </button>
-                        <button
-                          onClick={onViewMyBooks}
-                          className="rounded-xl border border-blue-200 bg-blue-50 px-5 py-6 text-left hover:bg-blue-100 transition-colors"
-                        >
+                    <h2 className="text-xl font-bold text-gray-900 mb-6">Admin Access</h2>
+                    <div className="bg-purple-50 border border-purple-200 rounded-lg p-6">
+                      <p className="text-gray-700 mb-4">
+                        You have admin privileges. Click the "Admin Dashboard" button to access the admin panel where you can:
+                      </p>
+                      <ul className="list-disc list-inside space-y-2 text-gray-700">
+                        <li>Manage user accounts</li>
+                        <li>View and manage books</li>
+                        <li>Create and manage coupons</li>
+                        <li>View platform statistics</li>
+                      </ul>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="space-y-6">
+                    <div className="bg-white rounded-2xl shadow-lg p-6">
+                      <h2 className="text-xl font-bold text-gray-900 mb-6">
+                        {activeProfileMode === 'seller' ? 'Seller Dashboard' : 'Customer Profile'}
+                      </h2>
+                      {activeProfileMode === 'seller' ? (
+                        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                          <button
+                            onClick={onViewSellerOrders}
+                            className="rounded-xl border border-indigo-200 bg-indigo-50 px-5 py-6 text-left hover:bg-indigo-100 transition-colors"
+                          >
+                            <p className="text-sm text-indigo-600 font-semibold mb-2">Orders</p>
+                            <p className="text-lg font-bold text-gray-900">Manage customer orders</p>
+                          </button>
+                          <button
+                            onClick={onAddBook}
+                            className="rounded-xl border border-green-200 bg-green-50 px-5 py-6 text-left hover:bg-green-100 transition-colors"
+                          >
+                            <p className="text-sm text-green-600 font-semibold mb-2">Inventory</p>
+                            <p className="text-lg font-bold text-gray-900">Add a new book listing</p>
+                          </button>
+                          <button
+                            onClick={onViewMyBooks}
+                            className="rounded-xl border border-blue-200 bg-blue-50 px-5 py-6 text-left hover:bg-blue-100 transition-colors"
+                          >
                           <p className="text-sm text-blue-600 font-semibold mb-2">Listings</p>
                           <p className="text-lg font-bold text-gray-900">Review your listed books</p>
                         </button>
@@ -431,8 +472,7 @@ export default function ProfilePage({
                     </div>
                     )}
                   </div>
-                </div>
-              </>
+                </div>                )}              </>
             ) : (
               /* Edit Form */
               <div className="bg-white rounded-2xl shadow-lg p-8">

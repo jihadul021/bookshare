@@ -18,8 +18,11 @@ const messageSchema = new mongoose.Schema({
   },
   text: {
     type: String,
-    required: true,
     trim: true
+  },
+  image: {
+    type: String,
+    default: null
   },
   isRead: {
     type: Boolean,

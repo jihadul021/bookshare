@@ -3,6 +3,7 @@ require('dotenv').config();
 const express = require('express');
 const http = require('http');
 const socketIo = require('socket.io');
+const path = require('path');
 const authRoutes = require('./routes/authRoutes');
 const cors = require('cors');
 const dotenv = require('dotenv');
@@ -16,6 +17,7 @@ const orderRoutes = require('./routes/orderRoutes');
 const couponRoutes = require('./routes/couponRoutes');
 const messageRoutes = require('./routes/messageRoutes');
 const addressRoutes = require('./routes/addressRoutes');
+const adminRoutes = require('./routes/adminRoutes');
 
 dotenv.config();
 connectDB();
@@ -30,7 +32,13 @@ const io = socketIo(server, {
 });
 
 app.use(cors({ origin: process.env.CLIENT_URL }));
-app.use(express.json());
+// Increase JSON payload limit to 50MB
+app.use(express.json({ limit: '50mb' }));
+app.use(express.urlencoded({ limit: '50mb', extended: true }));
+
+// Serve static files from uploads directory
+app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
+
 app.use('/api/auth', authRoutes);
 app.use('/api/books', bookRoutes);
 app.use('/api/cart', cartRoutes);
@@ -39,6 +47,7 @@ app.use('/api/orders', orderRoutes);
 app.use('/api/coupons', couponRoutes);
 app.use('/api/messages', messageRoutes);
 app.use('/api/addresses', addressRoutes);
+app.use('/api/admin', adminRoutes);
 
 app.get('/', (req, res) => {
   res.send('API working!');

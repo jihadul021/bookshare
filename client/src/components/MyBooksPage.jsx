@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react'
 import api from '../api'
+import getImageUrl from '../utils/getImageUrl'
 
 export default function MyBooksPage({
   token,
@@ -15,6 +16,7 @@ export default function MyBooksPage({
   const [deleteConfirm, setDeleteConfirm] = useState(null)
   const [editImages, setEditImages] = useState([])
   const [editImagePreviews, setEditImagePreviews] = useState([])
+  const [editImageFiles, setEditImageFiles] = useState([])
 
   if (!token) {
     onRequireLogin()
@@ -84,6 +86,7 @@ export default function MyBooksPage({
     setEditFormData(null)
     setEditImages([])
     setEditImagePreviews([])
+    setEditImageFiles([])
   }
 
   const handleEditInputChange = (e) => {
@@ -108,17 +111,18 @@ export default function MyBooksPage({
 
   const handleEditImageChange = (e) => {
     const files = Array.from(e.target.files)
+    const newFiles = []
     const newPreviews = []
-    const newImages = []
 
     files.forEach(file => {
+      newFiles.push(file)
       const reader = new FileReader()
       reader.onloadend = () => {
-        newImages.push(reader.result)
         newPreviews.push(reader.result)
         
         if (newPreviews.length === files.length) {
-          setEditImages(prev => [...prev, ...newImages])
+          setEditImageFiles(prev => [...prev, ...newFiles])
+          setEditImages(prev => [...prev, ...newFiles])
           setEditImagePreviews(prev => [...prev, ...newPreviews])
         }
       }
@@ -167,21 +171,30 @@ export default function MyBooksPage({
       setError('')
       setSuccess('')
 
-      const updateData = {
-        title: editFormData.title,
-        author: editFormData.author,
-        description: editFormData.description,
-        price: parseFloat(editFormData.price),
-        condition: editFormData.condition,
-        category: editFormData.category,
-        exchangeAvailable: editFormData.exchangeAvailable,
-        location: editFormData.location,
-        stock: parseInt(editFormData.stock) || 1,
-        images: editImagePreviews
+      // Create FormData for file uploads
+      const formDataToSend = new FormData()
+      formDataToSend.append('title', editFormData.title)
+      formDataToSend.append('author', editFormData.author)
+      formDataToSend.append('description', editFormData.description)
+      formDataToSend.append('price', parseFloat(editFormData.price))
+      formDataToSend.append('condition', editFormData.condition)
+      formDataToSend.append('category', editFormData.category)
+      formDataToSend.append('exchangeAvailable', editFormData.exchangeAvailable)
+      formDataToSend.append('location', editFormData.location)
+      formDataToSend.append('stock', parseInt(editFormData.stock) || 1)
+      
+      // Only append new image files (from file input)
+      if (editImageFiles && editImageFiles.length > 0) {
+        editImageFiles.forEach(file => {
+          formDataToSend.append('images', file)
+        })
       }
 
-      const response = await api.put(`/api/books/${editingBookId}`, updateData, {
-        headers: { Authorization: `Bearer ${token}` }
+      const response = await api.put(`/api/books/${editingBookId}`, formDataToSend, {
+        headers: { 
+          Authorization: `Bearer ${token}`,
+          'Content-Type': 'multipart/form-data'
+        }
       })
 
       // Update the book in the list
@@ -192,6 +205,7 @@ export default function MyBooksPage({
       setEditFormData(null)
       setEditImages([])
       setEditImagePreviews([])
+      setEditImageFiles([])
 
       setTimeout(() => setSuccess(''), 3000)
     } catch (err) {
@@ -470,7 +484,7 @@ export default function MyBooksPage({
                             {editImagePreviews.map((preview, index) => (
                               <div key={index} className="relative group">
                                 <img
-                                  src={preview}
+                                  src={getImageUrl(preview)}
                                   alt={`Preview ${index + 1}`}
                                   className="w-full h-32 object-cover rounded-lg border border-gray-200"
                                 />
@@ -536,7 +550,7 @@ export default function MyBooksPage({
                       <div className="md:col-span-1">
                         {book.images && book.images.length > 0 ? (
                           <img
-                            src={book.images[0]}
+                            src={getImageUrl(book.images[0])}
                             alt={book.title}
                             className="w-full h-64 object-cover rounded-lg border border-gray-200"
                           />

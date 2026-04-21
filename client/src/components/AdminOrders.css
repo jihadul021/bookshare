@@ -1,0 +1,217 @@
+.admin-orders {
+  animation: fadeIn 0.3s ease;
+}
+
+.orders-layout {
+  display: grid;
+  grid-template-columns: 340px minmax(0, 1fr);
+  gap: 24px;
+  align-items: start;
+}
+
+.orders-list-panel,
+.order-detail-panel {
+  background: #fff;
+  border: 1px solid #f1dfd3;
+  border-radius: 24px;
+  box-shadow: 0 18px 45px rgba(95, 45, 18, 0.08);
+}
+
+.orders-list-panel {
+  padding: 18px;
+  max-height: 76vh;
+  overflow-y: auto;
+}
+
+.order-detail-panel {
+  padding: 24px;
+}
+
+.orders-loading,
+.orders-empty {
+  padding: 48px 20px;
+  text-align: center;
+  color: #7a6254;
+}
+
+.order-summary-card {
+  width: 100%;
+  border: 1px solid #f0ddd0;
+  background: linear-gradient(180deg, #fffaf6 0%, #ffffff 100%);
+  border-radius: 18px;
+  padding: 16px;
+  margin-bottom: 14px;
+  cursor: pointer;
+  text-align: left;
+  transition: transform 0.2s ease, box-shadow 0.2s ease, border-color 0.2s ease;
+}
+
+.order-summary-card:hover,
+.order-summary-card.active {
+  transform: translateY(-2px);
+  border-color: #f28d52;
+  box-shadow: 0 14px 28px rgba(214, 109, 50, 0.12);
+}
+
+.order-summary-head,
+.order-summary-meta,
+.detail-hero {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.order-summary-card p,
+.detail-hero p {
+  color: #7f6656;
+}
+
+.detail-hero {
+  margin-bottom: 22px;
+  padding-bottom: 18px;
+  border-bottom: 1px solid #f3e4da;
+}
+
+.detail-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 18px;
+  margin-bottom: 18px;
+}
+
+.detail-card {
+  background: #fffaf6;
+  border: 1px solid #f3e2d7;
+  border-radius: 20px;
+  padding: 18px;
+  margin-bottom: 18px;
+}
+
+.detail-card h3 {
+  margin: 0 0 14px;
+  color: #4b2f24;
+}
+
+.detail-stack,
+.stack-list,
+.timeline {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.stack-item {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 12px 14px;
+  border-radius: 16px;
+  border: 1px solid #f2ddd0;
+  background: #ffffff;
+}
+
+.order-items-table {
+  display: grid;
+  gap: 10px;
+}
+
+.order-items-header,
+.order-items-row {
+  display: grid;
+  grid-template-columns: 1.5fr 1fr 80px 110px 1fr 100px;
+  gap: 12px;
+  align-items: center;
+}
+
+.order-items-header {
+  font-size: 12px;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: #8d7364;
+}
+
+.order-items-row {
+  padding: 12px 14px;
+  border-radius: 16px;
+  background: #ffffff;
+  border: 1px solid #f2ddd0;
+  color: #4b2f24;
+}
+
+.timeline-item {
+  display: flex;
+  gap: 12px;
+}
+
+.timeline-dot {
+  width: 12px;
+  height: 12px;
+  margin-top: 6px;
+  border-radius: 999px;
+  background: linear-gradient(135deg, #f28d52 0%, #d5612c 100%);
+  flex-shrink: 0;
+}
+
+.status-pill {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 92px;
+  padding: 7px 12px;
+  border-radius: 999px;
+  text-transform: capitalize;
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.status-pill.pending {
+  background: #fff1db;
+  color: #a66600;
+}
+
+.status-pill.confirmed {
+  background: #e8f1ff;
+  color: #285ea8;
+}
+
+.status-pill.processing {
+  background: #fce8db;
+  color: #b85a17;
+}
+
+.status-pill.delivered {
+  background: #e5f6ea;
+  color: #217346;
+}
+
+.status-pill.cancelled {
+  background: #fde8e8;
+  color: #b03232;
+}
+
+.empty-copy {
+  color: #7f6656;
+  margin: 0;
+}
+
+@media (max-width: 1180px) {
+  .orders-layout {
+    grid-template-columns: 1fr;
+  }
+
+  .orders-list-panel {
+    max-height: none;
+  }
+}
+
+@media (max-width: 820px) {
+  .detail-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .order-items-header,
+  .order-items-row {
+    grid-template-columns: 1fr 1fr;
+  }
+}

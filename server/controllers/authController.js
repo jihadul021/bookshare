@@ -57,6 +57,11 @@ exports.login = async (req, res) => {
 
     const isMatch = await user.matchPassword(password);
     if (!isMatch) return res.status(401).json({ message: 'Invalid email or password' });
+    if (user.isDisabled) {
+      return res.status(403).json({
+        message: 'Your account has been disabled.Please contact administrator for further details'
+      });
+    }
 
     res.json({
       _id: user._id,
@@ -65,6 +70,8 @@ exports.login = async (req, res) => {
       email: user.email,
       profilePicture: user.profilePicture,
       joinDate: user.joinDate,
+      role: user.role,
+      isverified: user.isverified,
       token: generateToken(user._id)
     }); 
   } catch (error) {
@@ -111,7 +118,15 @@ exports.updateProfile = async (req, res) => {
     if (normalizedName) user.name = normalizedName;
     if (typeof phone !== 'undefined') user.phone = phone ? phone.trim() : '';
     if (typeof address !== 'undefined') user.address = address ? address.trim() : '';
-    if (typeof profilePicture !== 'undefined') user.profilePicture = profilePicture || '';
+    
+    // Handle profile picture upload
+    if (req.file) {
+      user.profilePicture = `/uploads/${req.file.filename}`;
+    } else if (typeof profilePicture !== 'undefined') {
+      // Support base64 profile pictures for backward compatibility
+      user.profilePicture = profilePicture || '';
+    }
+    
     if (typeof gender !== 'undefined') user.gender = gender;
 
     if (password) {

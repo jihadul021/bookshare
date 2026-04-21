@@ -24,6 +24,14 @@ exports.getCart = async (req, res) => {
 // Add to cart
 exports.addToCart = async (req, res) => {
   try {
+    // Prevent admin and disabled users from adding to cart
+    if (req.user.role === 'admin') {
+      return res.status(403).json({ message: 'Admins cannot place orders' });
+    }
+    if (req.user.isDisabled) {
+      return res.status(403).json({ message: 'Your account is disabled' });
+    }
+
     const { bookId, quantity = 1 } = req.body;
 
     const book = await Book.findById(bookId);

@@ -2,8 +2,9 @@ import { useState, useEffect } from 'react'
 import api from '../api'
 import FloatingChat from './FloatingChat'
 import { addToCart, addToWishlist, getCart, getWishlist, removeFromCart, removeFromWishlist } from '../api'
+import getImageUrl from '../utils/getImageUrl'
 
-function SellerProfile({ sellerId, onBack, token, onShowCart, onShowWishlist, onItemClick }) {
+function SellerProfile({ sellerId, onBack, token, onItemClick }) {
   const [seller, setSeller] = useState(null)
   const [books, setBooks] = useState([])
   const [loading, setLoading] = useState(true)
@@ -11,7 +12,6 @@ function SellerProfile({ sellerId, onBack, token, onShowCart, onShowWishlist, on
   const [cartItems, setCartItems] = useState([])
   const [wishlistItems, setWishlistItems] = useState([])
   const [showCartAdded, setShowCartAdded] = useState({})
-  const [currentPage, setCurrentPage] = useState(1)
   const [showChatWindow, setShowChatWindow] = useState(false)
 
   // Fetch cart and wishlist items
@@ -50,7 +50,6 @@ function SellerProfile({ sellerId, onBack, token, onShowCart, onShowWishlist, on
         setSeller(response.data.books[0].seller)
       }
       setBooks(response.data.books)
-      setCurrentPage(1)
     } catch (err) {
       setError('Failed to fetch seller information')
       console.error(err)
@@ -107,6 +106,9 @@ function SellerProfile({ sellerId, onBack, token, onShowCart, onShowWishlist, on
   }
 
   const hasProfilePicture = seller?.profilePicture?.trim() && !seller?.profilePicture?.includes('google.com/url?')
+  const sellerAverageRating = books.length
+    ? (books.reduce((sum, book) => sum + (book.rating || 0), 0) / books.length).toFixed(1)
+    : null
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -142,7 +144,7 @@ function SellerProfile({ sellerId, onBack, token, onShowCart, onShowWishlist, on
                   <div className="flex-shrink-0">
                     {hasProfilePicture ? (
                       <img
-                        src={seller.profilePicture}
+                        src={getImageUrl(seller.profilePicture)}
                         alt={seller.name}
                         className="w-24 h-24 rounded-full object-cover border-4 border-orange-100"
                       />
@@ -160,7 +162,7 @@ function SellerProfile({ sellerId, onBack, token, onShowCart, onShowWishlist, on
                       <div className="flex items-center gap-2">
                         <span className="text-amber-400">★</span>
                         <span className="font-semibold text-gray-900">
-                          {seller.rating || 'No ratings yet'}
+                          {sellerAverageRating || 'No ratings yet'}
                         </span>
                       </div>
                       {seller.isverified && (
@@ -219,10 +221,10 @@ function SellerProfile({ sellerId, onBack, token, onShowCart, onShowWishlist, on
                       onClick={() => onItemClick(book)}
                     >
                       {/* Image */}
-                      <div className="relative aspect-[4/3] overflow-hidden bg-gray-100">
+                      <div className="relative aspect-[9/16] overflow-hidden bg-gray-100">
                         {book.images && book.images.length > 0 ? (
                           <img
-                            src={book.images[0]}
+                            src={getImageUrl(book.images[0])}
                             alt={book.title}
                             className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
                           />
@@ -255,6 +257,7 @@ function SellerProfile({ sellerId, onBack, token, onShowCart, onShowWishlist, on
                         <div className="text-sm text-gray-600 mb-4 flex-grow">
                           <p className="mb-1">📍 {book.location}</p>
                           <p>Condition: <span className="capitalize">{book.condition}</span></p>
+                          <p>Category: <span>{Array.isArray(book.category) ? book.category.join(', ') : book.category}</span></p>
                         </div>
 
                         {/* Price */}

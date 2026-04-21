@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { getUserOrders, cancelOrder } from '../api';
+import { addBookReview, cancelOrder, confirmExchangeCompletion, getUserOrders } from '../api';
+import getImageUrl from '../utils/getImageUrl';
 import './OrderDetails.css';
 
 const OrderDetails = ({ onBack }) => {
@@ -10,16 +11,31 @@ const OrderDetails = ({ onBack }) => {
   const [cancelling, setCancelling] = useState(null);
   const [cancelReason, setCancelReason] = useState('');
   const [showCancelModal, setShowCancelModal] = useState(false);
+  const [ratingDrafts, setRatingDrafts] = useState({});
+  const [reviewSubmitting, setReviewSubmitting] = useState('');
 
   useEffect(() => {
     fetchOrders();
+  }, []);
+
+  useEffect(() => {
+    const intervalId = window.setInterval(fetchOrders, 7000);
+    return () => window.clearInterval(intervalId);
   }, []);
 
   const fetchOrders = async () => {
     try {
       setLoading(true);
       const response = await getUserOrders();
-      setOrders(response.data.orders);
+      const nextOrders = response.data.orders || [];
+      setOrders(nextOrders);
+      setSelectedOrder((currentSelectedOrder) => {
+        if (!currentSelectedOrder) {
+          return currentSelectedOrder;
+        }
+
+        return nextOrders.find((order) => order._id === currentSelectedOrder._id) || currentSelectedOrder;
+      });
       setError('');
     } catch (err) {
       setError(err.response?.data?.message || 'Failed to fetch orders');
@@ -41,12 +57,18 @@ const OrderDetails = ({ onBack }) => {
   const getStatusColor = (status) => {
     const colors = {
       pending: '#ff9800',
-      confirmed: '#2196f3',
       processing: '#9c27b0',
       delivered: '#4caf50',
       cancelled: '#f44336'
     };
     return colors[status] || '#999';
+  };
+
+  const getDisplayStatus = (order) => {
+    if (order.orderType === 'exchange' && order.status === 'delivered') {
+      return 'Exchanged Successfully';
+    }
+    return order.status;
   };
 
   const handleCancelClick = (orderId) => {
@@ -74,7 +96,63 @@ const OrderDetails = ({ onBack }) => {
   };
 
   const canCancelOrder = (order) => {
-    return ['pending', 'confirmed'].includes(order.status);
+    return order.status === 'pending';
+  };
+
+  const getCurrentUserId = () => {
+    try {
+      return JSON.parse(localStorage.getItem('bookshareUser') || '{}')._id;
+    } catch {
+      return null;
+    }
+  };
+
+  const hasUserReviewedBook = (book) => {
+    const currentUserId = getCurrentUserId();
+    return book?.reviews?.some((review) => {
+      const reviewUserId = review.user?._id || review.user;
+      return reviewUserId?.toString() === currentUserId;
+    });
+  };
+
+  const handleRatingChange = (bookId, field, value) => {
+    setRatingDrafts((currentDrafts) => ({
+      ...currentDrafts,
+      [bookId]: {
+        ...currentDrafts[bookId],
+        [field]: value
+      }
+    }));
+  };
+
+  const handleSubmitReview = async (bookId) => {
+    const review = ratingDrafts[bookId];
+    if (!review?.rating) {
+      setError('Please select a star rating before submitting.');
+      return;
+    }
+
+    try {
+      setReviewSubmitting(bookId);
+      await addBookReview(bookId, {
+        rating: review.rating,
+        comment: review.comment || ''
+      });
+      await fetchOrders();
+    } catch (requestError) {
+      setError(requestError.response?.data?.message || 'Failed to submit review');
+    } finally {
+      setReviewSubmitting('');
+    }
+  };
+
+  const handleConfirmExchange = async (orderId) => {
+    try {
+      await confirmExchangeCompletion(orderId);
+      await fetchOrders();
+    } catch (requestError) {
+      setError(requestError.response?.data?.message || 'Failed to confirm exchange');
+    }
   };
 
   if (loading) {
@@ -103,7 +181,7 @@ const OrderDetails = ({ onBack }) => {
                 className="status-badge"
                 style={{ backgroundColor: getStatusColor(selectedOrder.status) }}
               >
-                {selectedOrder.status.toUpperCase()}
+                {getDisplayStatus(selectedOrder).toUpperCase()}
               </span>
             </div>
           </div>
@@ -123,18 +201,44 @@ const OrderDetails = ({ onBack }) => {
                 </div>
                 <div className="info-item">
                   <span className="label">Payment Method</span>
-                  <span className="value">{selectedOrder.paymentMethod === 'cash_on_delivery' ? 'Cash on Delivery' : 'Card'}</span>
+                  <span className="value">{selectedOrder.orderType === 'exchange' ? 'Exchange Request' : selectedOrder.paymentMethod === 'cash_on_delivery' ? 'Cash on Delivery' : 'Card'}</span>
                 </div>
                 <div className="info-item">
                   <span className="label">Payment Status</span>
-                  <span className="value">{selectedOrder.paymentStatus}</span>
+                  <span className="value">{selectedOrder.orderType === 'exchange' ? 'Not Applicable' : selectedOrder.paymentStatus}</span>
                 </div>
               </div>
             </div>
 
+            {selectedOrder.orderType === 'exchange' && (
+              <div className="detail-section full-width">
+                <h3>Exchange Request</h3>
+                <div className="info-grid">
+                  <div className="info-item">
+                    <span className="label">Requested Book</span>
+                    <span className="value">{selectedOrder.exchangeRequest?.requestedBook?.title || selectedOrder.items?.[0]?.book?.title}</span>
+                  </div>
+                  <div className="info-item">
+                    <span className="label">Offered Book</span>
+                    <span className="value">{selectedOrder.exchangeRequest?.offeredBook?.title || '-'}</span>
+                  </div>
+                  <div className="info-item">
+                    <span className="label">Your Details</span>
+                    <span className="value">{selectedOrder.exchangeRequest?.details || selectedOrder.notes || '-'}</span>
+                  </div>
+                  <div className="info-item">
+                    <span className="label">Completion Status</span>
+                    <span className="value">
+                      Buyer: {selectedOrder.exchangeRequest?.buyerConfirmed ? 'Confirmed' : 'Pending'} | Seller: {selectedOrder.exchangeRequest?.sellerConfirmed ? 'Confirmed' : 'Pending'}
+                    </span>
+                  </div>
+                </div>
+              </div>
+            )}
+
             {/* Shipping Address */}
             <div className="detail-section">
-              <h3>Shipping Address</h3>
+              <h3>{selectedOrder.orderType === 'exchange' ? 'Contact Details' : 'Shipping Address'}</h3>
               <div className="address-info">
                 <p><strong>{selectedOrder.shippingAddress.fullName}</strong></p>
                 <p>{selectedOrder.shippingAddress.address}</p>
@@ -160,7 +264,7 @@ const OrderDetails = ({ onBack }) => {
                     <div className="col-item">
                       <div className="item-info">
                         {item.book.images?.[0] && (
-                          <img src={item.book.images[0]} alt={item.book.title} />
+                          <img src={getImageUrl(item.book.images[0])} alt={item.book.title} />
                         )}
                         <div>
                           <p className="item-title">{item.book.title}</p>
@@ -233,6 +337,61 @@ const OrderDetails = ({ onBack }) => {
                 </button>
               </div>
             )}
+
+            {selectedOrder.orderType === 'exchange' && selectedOrder.status !== 'cancelled' && (
+              <div className="detail-section full-width">
+                <button className="cancel-order-btn" onClick={() => handleConfirmExchange(selectedOrder._id)}>
+                  {selectedOrder.exchangeRequest?.buyerConfirmed ? 'Exchange Marked By You' : 'Mark Exchange Successful'}
+                </button>
+              </div>
+            )}
+
+            {selectedOrder.status === 'delivered' && selectedOrder.orderType === 'purchase' && (
+              <div className="detail-section full-width">
+                <h3>Rate Your Books</h3>
+                <div className="timeline">
+                  {selectedOrder.items.map((orderItem) => (
+                    <div key={orderItem._id} className="timeline-item">
+                      <div className="timeline-content" style={{ width: '100%' }}>
+                        <p className="timeline-status">{orderItem.book.title}</p>
+                        {hasUserReviewedBook(orderItem.book) ? (
+                          <p className="timeline-reason">You already reviewed this book.</p>
+                        ) : (
+                          <>
+                            <select
+                              value={ratingDrafts[orderItem.book._id]?.rating || ''}
+                              onChange={(event) => handleRatingChange(orderItem.book._id, 'rating', Number(event.target.value))}
+                              style={{ padding: '10px', borderRadius: '8px', marginBottom: '10px', width: '100%' }}
+                            >
+                              <option value="">Select rating</option>
+                              {[5, 4, 3, 2, 1].map((star) => (
+                                <option key={star} value={star}>
+                                  {star} Star{star === 1 ? '' : 's'}
+                                </option>
+                              ))}
+                            </select>
+                            <textarea
+                              value={ratingDrafts[orderItem.book._id]?.comment || ''}
+                              onChange={(event) => handleRatingChange(orderItem.book._id, 'comment', event.target.value)}
+                              placeholder="Share a short review..."
+                              rows="3"
+                              style={{ width: '100%', padding: '10px', borderRadius: '8px', marginBottom: '10px' }}
+                            />
+                            <button
+                              className="view-btn"
+                              onClick={() => handleSubmitReview(orderItem.book._id)}
+                              disabled={reviewSubmitting === orderItem.book._id}
+                            >
+                              {reviewSubmitting === orderItem.book._id ? 'Submitting...' : 'Submit Review'}
+                            </button>
+                          </>
+                        )}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
           </div>
         </div>
       </div>
@@ -272,7 +431,7 @@ const OrderDetails = ({ onBack }) => {
                     style={{ backgroundColor: getStatusColor(order.status) + '20', borderColor: getStatusColor(order.status) }}
                   >
                     <span style={{ color: getStatusColor(order.status) }}>
-                      {order.status.toUpperCase()}
+                      {getDisplayStatus(order).toUpperCase()}
                     </span>
                   </div>
                 </div>

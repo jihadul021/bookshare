@@ -120,11 +120,21 @@ exports.getMessages = async (req, res) => {
 // Send a message
 exports.sendMessage = async (req, res) => {
   try {
-    const { conversationId, receiverId, text } = req.body;
+    const { conversationId, receiverId, text, image } = req.body;
     const senderId = req.user._id;
 
-    if (!text || !text.trim()) {
-      return res.status(400).json({ message: 'Message text is required' });
+    // If file is uploaded via multer
+    let processedImage = null;
+    if (req.file) {
+      processedImage = `/uploads/${req.file.filename}`;
+    } else if (image) {
+      // Support base64 images for backward compatibility
+      processedImage = image;
+    }
+
+    // Either text or image is required
+    if ((!text || !text.trim()) && !processedImage) {
+      return res.status(400).json({ message: 'Message text or image is required' });
     }
 
     if (!conversationId || !receiverId) {
@@ -150,7 +160,8 @@ exports.sendMessage = async (req, res) => {
       conversation: conversationId,
       sender: senderId,
       receiver: receiverId,
-      text: text.trim(),
+      text: text ? text.trim() : '',
+      image: processedImage,
       isRead: false
     });
 
@@ -160,7 +171,7 @@ exports.sendMessage = async (req, res) => {
 
     // Update conversation
     conversation.lastMessage = message._id;
-    conversation.lastMessageText = text.trim();
+    conversation.lastMessageText = text ? text.trim() : '[Image]';
     conversation.lastMessageAt = new Date();
     conversation.lastMessageSender = senderId;
 

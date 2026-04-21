@@ -21,7 +21,19 @@ import OrderDetails from './components/OrderDetails';
 import SellerOrderManagement from './components/SellerOrderManagement';
 import Inbox from './components/Inbox';
 import ChatWindow from './components/ChatWindow';
+import AdminDashboard from './components/AdminDashboard';
+import api from './api';
 import { connectSocket, disconnectSocket } from './socket';
+
+const DEFAULT_SEARCH_FILTERS = {
+  category: [],
+  condition: [],
+  minPrice: null,
+  maxPrice: null,
+  location: '',
+  minRating: null,
+  sortBy: 'newest'
+}
 
 const getStoredUser = () => {
   try {
@@ -44,13 +56,17 @@ function App() {
   // }
     const [activeCategory, setActiveCategory] = useState('all')
     const [selectedItem, setSelectedItem] = useState(null)
-    const [currentView, setCurrentView] = useState('home') // 'home' | 'detail' | 'login' | 'register' | 'profile' | 'addbook' | 'mybooks' | 'cart' | 'wishlist' | 'search' | 'seller' | 'checkout' | 'congratulations' | 'orders' | 'seller-orders' | 'inbox' | 'chat'
+    const [currentView, setCurrentView] = useState('home') // 'home' | 'detail' | 'login' | 'register' | 'profile' | 'addbook' | 'mybooks' | 'cart' | 'wishlist' | 'search' | 'seller' | 'checkout' | 'congratulations' | 'orders' | 'seller-orders' | 'inbox' | 'chat' | 'admin'
     const [currentUser, setCurrentUser] = useState(getStoredUser)
     const [searchQuery, setSearchQuery] = useState('')
     const [selectedSellerId, setSelectedSellerId] = useState(null)
     const [cartForCheckout, setCartForCheckout] = useState(null)
     const [completedOrder, setCompletedOrder] = useState(null)
     const [selectedConversation, setSelectedConversation] = useState(null)
+    const [adminInitialTab, setAdminInitialTab] = useState('dashboard')
+    const [detailReturnView, setDetailReturnView] = useState('home')
+    const [checkoutReturnView, setCheckoutReturnView] = useState('cart')
+    const [searchFilters, setSearchFilters] = useState(DEFAULT_SEARCH_FILTERS)
     
     useEffect(() => {
       if (currentUser?._id) {
@@ -66,6 +82,7 @@ function App() {
     
     const handleItemClick = (item) => {
       setSelectedItem(item)
+      setDetailReturnView('home')
       setCurrentView('detail')
       window.scrollTo(0, 0)
     }
@@ -73,6 +90,12 @@ function App() {
     const handleBack = () => {
       setSelectedItem(null)
       setCurrentView('home')
+      window.scrollTo(0, 0)
+    }
+
+    const handleBackFromDetail = () => {
+      setSelectedItem(null)
+      setCurrentView(detailReturnView)
       window.scrollTo(0, 0)
     }
 
@@ -123,7 +146,7 @@ function App() {
       window.scrollTo(0, 0)
     }
 
-    const handleBookAdded = (book) => {
+    const handleBookAdded = () => {
       setCurrentView('profile')
       window.scrollTo(0, 0)
     }
@@ -170,8 +193,9 @@ function App() {
       window.scrollTo(0, 0)
     }
 
-    const handleSearch = (query = '') => {
+    const handleSearch = (query = '', nextFilters = DEFAULT_SEARCH_FILTERS) => {
       setSearchQuery(query)
+      setSearchFilters({ ...DEFAULT_SEARCH_FILTERS, ...nextFilters })
       setCurrentView('search')
       window.scrollTo(0, 0)
     }
@@ -199,6 +223,7 @@ function App() {
         handleShowLogin()
         return
       }
+      setCheckoutReturnView('cart')
       setCartForCheckout(cart)
       setCurrentView('checkout')
       window.scrollTo(0, 0)
@@ -207,6 +232,11 @@ function App() {
     const handleOrderSuccess = (order) => {
       setCompletedOrder(order)
       setCurrentView('congratulations')
+      window.scrollTo(0, 0)
+    }
+
+    const handleBackFromCheckout = () => {
+      setCurrentView(checkoutReturnView)
       window.scrollTo(0, 0)
     }
 
@@ -272,6 +302,100 @@ function App() {
       window.scrollTo(0, 0)
     }
 
+    const handleViewAdminDashboard = (profileUser) => {
+      const effectiveUser = profileUser || currentUser
+
+      if (!currentUser?.token || effectiveUser?.role !== 'admin') {
+        handleBack()
+        return
+      }
+
+      if (profileUser) {
+        handleAuthSuccess({ ...currentUser, ...profileUser, token: currentUser.token })
+      }
+
+      setAdminInitialTab('dashboard')
+      setCurrentView('admin')
+      window.scrollTo(0, 0)
+    }
+
+    const handleBackFromAdmin = () => {
+      setAdminInitialTab('dashboard')
+      setCurrentView('profile')
+      window.scrollTo(0, 0)
+    }
+
+    const handleAdminViewBook = async (bookId) => {
+      try {
+        const response = await api.get(`/api/books/${bookId}`)
+        setSelectedItem(response.data)
+        setAdminInitialTab('books')
+        setDetailReturnView('admin')
+        setCurrentView('detail')
+        window.scrollTo(0, 0)
+      } catch (error) {
+        console.error('Failed to load book details from admin dashboard:', error)
+      }
+    }
+
+    const handleBrowseAll = () => {
+      handleSearch('', DEFAULT_SEARCH_FILTERS)
+    }
+
+    const handleHomepageFilter = ({ type, value }) => {
+      const nextFilters = { ...DEFAULT_SEARCH_FILTERS }
+      if (type === 'category') {
+        nextFilters.category = [value]
+      }
+      if (type === 'condition') {
+        nextFilters.condition = [value]
+      }
+      handleSearch('', nextFilters)
+    }
+
+    const handleBuyNow = (book, quantity = 1) => {
+      if (!currentUser?.token) {
+        handleShowLogin()
+        return
+      }
+
+      setCheckoutReturnView('detail')
+      setCartForCheckout({
+        items: [
+          {
+            book,
+            quantity
+          }
+        ],
+        totalPrice: book.price * quantity,
+        totalItems: 1
+      })
+      setCurrentView('checkout')
+      window.scrollTo(0, 0)
+    }
+
+    const handleExchangeCheckout = (book) => {
+      if (!currentUser?.token) {
+        handleShowLogin()
+        return
+      }
+
+      setCheckoutReturnView('detail')
+      setCartForCheckout({
+        exchangeMode: true,
+        requestedBook: book,
+        items: [
+          {
+            book,
+            quantity: 1
+          }
+        ],
+        totalPrice: 0,
+        totalItems: 1
+      })
+      setCurrentView('checkout')
+      window.scrollTo(0, 0)
+    }
 
   return (
         <div className="min-h-screen bg-gray-50">
@@ -294,16 +418,19 @@ function App() {
           {currentView === 'home' ? (
         <>
           <Banner />
-          <Categories activeCategory={activeCategory} setActiveCategory={setActiveCategory} />
+          <Categories activeCategory={activeCategory} setActiveCategory={setActiveCategory} onSelectFilter={handleHomepageFilter} />
           <BookGrid activeCategory={activeCategory} onItemClick={handleItemClick} token={currentUser?.token} onShowCart={handleViewCart} onShowWishlist={handleViewWishlist} onSeeAll={handleBrowseAll} />      
           <HowItWorks/>  
         </>
             ) : currentView === 'detail' ? (
                 <ProductDetails
                   item={selectedItem}
-                  onBack={handleBack}
+                  onBack={handleBackFromDetail}
                   token={currentUser?.token}
                   onViewSeller={handleViewSeller}
+                  onSelectBook={handleItemClick}
+                  onBuyNow={handleBuyNow}
+                  onRequestExchange={handleExchangeCheckout}
                 />
             ) : currentView === 'login' ? (
                 <LoginPage
@@ -335,7 +462,16 @@ function App() {
                   onViewMyBooks={handleViewMyBooks}
                   onViewOrders={handleViewOrders}
                   onViewSellerOrders={handleViewSellerOrders}
+                  onViewAdminDashboard={handleViewAdminDashboard}
                 />
+            ) : currentView === 'admin' ? (
+                <div style={{ marginLeft: 0, paddingTop: '20px' }}>
+                  <AdminDashboard
+                    onBack={handleBackFromAdmin}
+                    initialTab={adminInitialTab}
+                    onViewBook={handleAdminViewBook}
+                  />
+                </div>
             ) : currentView === 'cart' ? (
                 <CartPage
                   token={currentUser?.token}
@@ -352,6 +488,7 @@ function App() {
             ) : currentView === 'search' ? (
                 <SearchResults
                   searchQuery={searchQuery}
+                  initialFilters={searchFilters}
                   onBack={handleBackFromSearch}
                   token={currentUser?.token}
                   onItemClick={handleItemClick}
@@ -371,6 +508,7 @@ function App() {
                 <Checkout
                   cart={cartForCheckout}
                   onOrderSuccess={handleOrderSuccess}
+                  onBack={handleBackFromCheckout}
                 />
             ) : currentView === 'congratulations' ? (
                 <Congratulations
@@ -404,7 +542,7 @@ function App() {
                   onAuthSuccess={handleAuthSuccess}
                 />
             )}
-          <Footer />
+          {currentView !== 'admin' && <Footer />}
 
 
         </div>
@@ -412,6 +550,3 @@ function App() {
 }
 
 export default App
-    const handleBrowseAll = () => {
-      handleSearch('')
-    }

@@ -73,17 +73,17 @@ export default function AddBookPage({
 
   const handleImageChange = (e) => {
     const files = Array.from(e.target.files)
+    const newFiles = []
     const newPreviews = []
-    const newImages = []
 
     files.forEach(file => {
+      newFiles.push(file)
       const reader = new FileReader()
       reader.onloadend = () => {
-        newImages.push(reader.result)
         newPreviews.push(reader.result)
         
         if (newPreviews.length === files.length) {
-          setImages(prev => [...prev, ...newImages])
+          setImages(prev => [...prev, ...newFiles])
           setImagePreviews(prev => [...prev, ...newPreviews])
         }
       }
@@ -138,20 +138,29 @@ export default function AddBookPage({
       setError('')
       setSuccess('')
 
-      const bookData = {
-        title: formData.title,
-        author: formData.author,
-        description: formData.description,
-        price: parseFloat(formData.price),
-        condition: formData.condition,
-        categories: formData.categories,
-        exchangeAvailable: formData.exchangeAvailable,
-        location: formData.location,
-        images: imagePreviews
-      }
+      // Create FormData for multipart/form-data
+      const formDataToSend = new FormData()
+      formDataToSend.append('title', formData.title)
+      formDataToSend.append('author', formData.author)
+      formDataToSend.append('description', formData.description)
+      formDataToSend.append('price', parseFloat(formData.price))
+      formDataToSend.append('condition', formData.condition)
+      formDataToSend.append('exchangeAvailable', formData.exchangeAvailable)
+      formDataToSend.append('location', formData.location)
+      
+      // Append categories as JSON string
+      formDataToSend.append('categories', JSON.stringify(formData.categories))
+      
+      // Append image files
+      images.forEach(image => {
+        formDataToSend.append('images', image)
+      })
 
-      const response = await api.post('/api/books', bookData, {
-        headers: { Authorization: `Bearer ${token}` }
+      const response = await api.post('/api/books', formDataToSend, {
+        headers: { 
+          Authorization: `Bearer ${token}`,
+          'Content-Type': 'multipart/form-data'
+        }
       })
 
       setSuccess('Book added successfully!')

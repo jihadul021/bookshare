@@ -37,6 +37,7 @@ export const getMyBooks = () => api.get('/api/books/mybooks');
 export const searchBooks = (params) => api.get('/api/books/search', { params });
 export const getSellerBooks = (sellerId, page, limit) => 
   api.get(`/api/books/seller/${sellerId}`, { params: { page, limit } });
+export const addBookReview = (id, reviewData) => api.post(`/api/books/${id}/reviews`, reviewData);
 
 // Cart endpoints
 export const getCart = () => api.get('/api/cart');
@@ -57,10 +58,13 @@ export const removeFromWishlist = (bookId) =>
 
 // Order endpoints
 export const createOrder = (orderData) => api.post('/api/orders/create', orderData);
+export const createExchangeRequest = (exchangeData) => api.post('/api/orders/exchange-request', exchangeData);
 export const getUserOrders = () => api.get('/api/orders/my-orders');
 export const getOrderById = (orderId) => api.get(`/api/orders/${orderId}`);
 export const cancelOrder = (orderId, reason) => 
   api.put(`/api/orders/${orderId}/cancel`, { reason });
+export const confirmExchangeCompletion = (orderId) =>
+  api.put(`/api/orders/${orderId}/exchange-confirm`);
 export const verifyCoupon = (code, amount) => 
   api.post('/api/orders/verify-coupon', { code, amount });
 
