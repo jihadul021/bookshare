@@ -18,7 +18,7 @@ BookShare is a full-stack web application designed to facilitate the sharing, bu
 - **Order Management** — Place orders, track order history, and manage seller orders
 - **Payment Integration** — Cash on delivery and Stripe card payment (test mode)
 - **Coupon & Discounts** — Apply discount codes at checkout
-- **Real-Time Chat** — In-app messaging between buyers and sellers via Socket.io
+- **Real-Time Chat** — In-app messaging between buyers and sellers via Socket.io with AES encrypted messages stored in the database
 - **Reviews & Ratings** — Rate and review books after purchase
 - **Admin Dashboard** — Manage users, books, orders, and coupons
 - **Saved Addresses** — Save and reuse shipping addresses at checkout
@@ -108,6 +108,7 @@ MONGODB_URI=your_mongodb_connection_string
 JWT_SECRET=your_jwt_secret
 PORT=3000
 CLIENT_URL=http://localhost:5173
+CHAT_ENCRYPTION_SECRET=your_long_random_secret_key
 ```
 
 **Frontend — create `client/.env`**
