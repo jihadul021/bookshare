@@ -18,6 +18,8 @@ const couponRoutes = require('./routes/couponRoutes');
 const messageRoutes = require('./routes/messageRoutes');
 const addressRoutes = require('./routes/addressRoutes');
 const adminRoutes = require('./routes/adminRoutes');
+const paymentRoutes = require('./routes/paymentRoutes');
+
 
 dotenv.config();
 connectDB();
@@ -48,6 +50,7 @@ app.use('/api/coupons', couponRoutes);
 app.use('/api/messages', messageRoutes);
 app.use('/api/addresses', addressRoutes);
 app.use('/api/admin', adminRoutes);
+app.use('/api/payment', paymentRoutes);
 
 app.get('/', (req, res) => {
   res.send('API working!');
