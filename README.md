@@ -11,7 +11,7 @@ BookShare is a full-stack web application designed to facilitate the sharing, bu
 
 ## Features
 
-- **User Authentication** — Secure registration, login, and profile management using JWT
+- **User Authentication** — Secure registration, login, email verification and profile management using JWT
 - **Book Listings** — Add, edit, browse, and search for books with images
 - **Cart & Wishlist** — Add books to cart or wishlist for easy management
 - **Book Exchange** — Request to exchange your books with other users
@@ -109,6 +109,13 @@ JWT_SECRET=your_jwt_secret
 PORT=3000
 CLIENT_URL=http://localhost:5173
 CHAT_ENCRYPTION_SECRET=your_long_random_secret_key
+
+SMTP_HOST="smtp.gmail.com"
+SMTP_PORT=587
+SMTP_USER=user_email
+SMTP_PASS=email_app_password
+SMTP_FROM="BookShare <user_email>"
+
 ```
 
 **Frontend — create `client/.env`**
