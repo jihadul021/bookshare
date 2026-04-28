@@ -244,7 +244,7 @@ const AdminUsers = () => {
                 {selectedUser.userBooks.map((book) => (
                   <div key={book._id} className="stack-item">
                     <strong>{book.title}</strong>
-                    <span>Rs. {book.price}</span>
+                    <span>Tk {book.price}</span>
                   </div>
                 ))}
               </div>

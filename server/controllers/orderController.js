@@ -5,6 +5,22 @@ const Cart = require('../models/Cart');
 const Address = require('../models/Address');
 const User = require('../models/User');
 const Conversation = require('../models/Conversation');
+const Stripe = require('stripe');
+
+const stripe = Stripe(process.env.STRIPE_SECRET_KEY);
+
+const normalizeLegacyCardPaymentStatus = (order) => {
+  if (
+    order &&
+    order.orderType === 'purchase' &&
+    order.paymentMethod === 'card' &&
+    order.paymentStatus === 'pending'
+  ) {
+    order.paymentStatus = 'completed';
+  }
+
+  return order;
+};
 
 // Helper function to generate unique order number
 const generateOrderNumber = async () => {
@@ -32,7 +48,7 @@ exports.createOrder = async (req, res) => {
       return res.status(403).json({ message: 'Your account is disabled' });
     }
 
-    const { items, shippingAddress, couponCode, paymentMethod } = req.body;
+    const { items, shippingAddress, couponCode, paymentMethod, stripeSessionId } = req.body;
     const userId = req.user._id;
 
     console.log('Creating order for user:', userId);
@@ -121,6 +137,31 @@ exports.createOrder = async (req, res) => {
 
     const totalAmount = subtotal - discountAmount;
 
+    let paymentStatus = 'pending';
+    let notes = '';
+
+    if (paymentMethod === 'card') {
+      if (!stripeSessionId) {
+        return res.status(400).json({ message: 'Stripe session is required for card payments' });
+      }
+
+      const session = await stripe.checkout.sessions.retrieve(stripeSessionId, {
+        expand: ['payment_intent']
+      });
+
+      if (session.payment_status !== 'paid') {
+        return res.status(400).json({ message: 'Card payment was not completed successfully' });
+      }
+
+      const paidAmount = (session.amount_total || 0) / 100;
+      if (Math.abs(paidAmount - totalAmount) > 0.01) {
+        return res.status(400).json({ message: 'Paid amount does not match the order total' });
+      }
+
+      paymentStatus = 'completed';
+      notes = `Stripe session: ${session.id}`;
+    }
+
     // Validate sellers map is not empty
     const sellers = Object.values(sellersMap);
     if (sellers.length === 0) {
@@ -145,6 +186,8 @@ exports.createOrder = async (req, res) => {
       shippingCost: 0,
       totalAmount,
       paymentMethod: paymentMethod || 'cash_on_delivery',
+      paymentStatus,
+      notes,
       status: 'pending'
     });
 
@@ -360,6 +403,8 @@ exports.getUserOrders = async (req, res) => {
       .populate('exchangeRequest.offeredBook', 'title author images seller')
       .sort({ createdAt: -1 });
 
+    orders.forEach(normalizeLegacyCardPaymentStatus);
+
     res.status(200).json({
       success: true,
       orders
@@ -392,6 +437,8 @@ exports.getOrderById = async (req, res) => {
     if (order.user._id.toString() !== userId.toString()) {
       return res.status(403).json({ message: 'Unauthorized' });
     }
+
+    normalizeLegacyCardPaymentStatus(order);
 
     res.status(200).json({
       success: true,
@@ -464,6 +511,8 @@ exports.getAllOrders = async (req, res) => {
       .populate('exchangeRequest.requestedBook', 'title author images')
       .populate('exchangeRequest.offeredBook', 'title author images seller')
       .sort({ createdAt: -1 });
+
+    orders.forEach(normalizeLegacyCardPaymentStatus);
 
     res.status(200).json({
       success: true,
@@ -650,6 +699,8 @@ exports.getSellerOrders = async (req, res) => {
       .populate('exchangeRequest.requestedBook', 'title author images')
       .populate('exchangeRequest.offeredBook', 'title author images seller')
       .sort({ createdAt: -1 });
+
+    orders.forEach(normalizeLegacyCardPaymentStatus);
 
     // Filter items to only show items from this seller
     const sellerOrders = orders.map(order => {

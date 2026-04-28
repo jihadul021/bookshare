@@ -1,6 +1,36 @@
 const Book = require('../models/Book');
 const Order = require('../models/Order');
 
+const hasDeliveredStatusHistory = (statusHistory = []) =>
+  statusHistory.some((entry) => entry?.status === 'delivered');
+
+const hasUserReceivedBookFromOrder = (order, bookId) => {
+  const normalizedBookId = bookId.toString();
+  const hasBookInOrder = order.items?.some(
+    (item) => item.book?.toString() === normalizedBookId
+  );
+
+  if (!hasBookInOrder) {
+    return false;
+  }
+
+  if (order.status === 'delivered' || order.deliveredAt || hasDeliveredStatusHistory(order.statusHistory)) {
+    return true;
+  }
+
+  return order.sellers?.some((sellerEntry) => {
+    const sellerHasBook = sellerEntry.items?.some(
+      (itemId) => itemId?.toString() === normalizedBookId
+    );
+
+    if (!sellerHasBook) {
+      return false;
+    }
+
+    return sellerEntry.status === 'delivered' || hasDeliveredStatusHistory(sellerEntry.statusHistory);
+  });
+};
+
 exports.addBook = async (req, res) => {
   try {
     // Prevent disabled users from adding books
@@ -118,32 +148,17 @@ exports.addBookReview = async (req, res) => {
 
     const purchasedOrders = await Order.find({
       user: req.user._id,
-      orderType: 'purchase',
-      status: { $ne: 'cancelled' }
+      status: { $ne: 'cancelled' },
+      $or: [
+        { orderType: 'purchase' },
+        { orderType: { $exists: false } },
+        { orderType: null }
+      ]
     }).select('status items sellers deliveredAt statusHistory');
 
-    const hasReceivedBook = purchasedOrders.some((order) => {
-      const hasBookInOrder = order.items?.some(
-        (item) => item.book?.toString() === book._id.toString()
-      );
-
-      if (!hasBookInOrder) {
-        return false;
-      }
-
-      if (order.status === 'delivered' || order.deliveredAt) {
-        return true;
-      }
-
-      return order.sellers?.some((sellerEntry) => {
-        const sellerDelivered = sellerEntry.status === 'delivered';
-        const sellerHasBook = sellerEntry.items?.some(
-          (itemId) => itemId?.toString() === book._id.toString()
-        );
-
-        return sellerDelivered && sellerHasBook;
-      });
-    });
+    const hasReceivedBook = purchasedOrders.some((order) =>
+      hasUserReceivedBookFromOrder(order, book._id)
+    );
 
     if (!hasReceivedBook) {
       return res.status(403).json({ message: 'You can only review books you have received' });

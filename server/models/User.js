@@ -45,6 +45,22 @@ const userSchema = new mongoose.Schema({
     type: Boolean,
     default: false
   },
+  emailVerificationOtpHash: {
+    type: String,
+    default: ''
+  },
+  emailVerificationOtpExpires: {
+    type: Date,
+    default: null
+  },
+  passwordResetOtpHash: {
+    type: String,
+    default: ''
+  },
+  passwordResetOtpExpires: {
+    type: Date,
+    default: null
+  },
   joinDate: {
     type: Date,
     default: Date.now

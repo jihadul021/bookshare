@@ -4,6 +4,16 @@ import './Congratulations.css';
 const Congratulations = ({ order, onBackHome }) => {
   const [copied, setCopied] = useState(false);
 
+  const resolvedPaymentStatus = order?.paymentMethod === 'card' && order?.paymentStatus === 'pending'
+    ? 'completed'
+    : order?.paymentStatus;
+
+  const paymentStatusLabel = resolvedPaymentStatus === 'completed'
+    ? 'Paid'
+    : resolvedPaymentStatus === 'failed'
+      ? 'Failed'
+      : 'Pending';
+
   const handleCopyOrderNumber = () => {
     navigator.clipboard.writeText(order.orderNumber);
     setCopied(true);
@@ -64,6 +74,11 @@ const Congratulations = ({ order, onBackHome }) => {
             <div className="info-item">
               <p className="label">Payment Method</p>
               <p className="value">{order.paymentMethod === 'cash_on_delivery' ? 'Cash on Delivery' : 'Card'}</p>
+            </div>
+
+            <div className="info-item">
+              <p className="label">Payment Status</p>
+              <p className="value">{paymentStatusLabel}</p>
             </div>
 
             <div className="info-item">

@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import Navbar from './components/Navbar'; 
 import Banner from './components/Banner';
 import Categories from './components/Categories'
@@ -8,6 +8,8 @@ import HowItWorks from './components/HowItWorks';
 import Footer from './components/Footer';
 import LoginPage from './components/LoginPage';
 import RegisterPage from './components/RegisterPage';
+import VerifyEmailPage from './components/VerifyEmailPage';
+import ForgotPasswordPage from './components/ForgotPasswordPage';
 import ProfilePage from './components/ProfilePage';
 import AddBookPage from './components/AddBookPage';
 import MyBooksPage from './components/MyBooksPage';
@@ -24,6 +26,8 @@ import ChatWindow from './components/ChatWindow';
 import AdminDashboard from './components/AdminDashboard';
 import api from './api';
 import { connectSocket, disconnectSocket } from './socket';
+
+const PENDING_CHECKOUT_STORAGE_KEY = 'booksharePendingCheckout'
 
 const DEFAULT_SEARCH_FILTERS = {
   category: [],
@@ -45,6 +49,39 @@ const getStoredUser = () => {
   }
 }
 
+const getInitialPaymentReturn = () => {
+  const params = new URLSearchParams(window.location.search)
+  const paymentStatus = params.get('payment')
+
+  if (!paymentStatus) {
+    return null
+  }
+
+  return {
+    status: paymentStatus,
+    sessionId: params.get('session_id')
+  }
+}
+
+const getInitialCartForCheckout = (initialPaymentReturn) => {
+  if (!initialPaymentReturn) {
+    return null
+  }
+
+  try {
+    const rawCheckout = sessionStorage.getItem(PENDING_CHECKOUT_STORAGE_KEY)
+    if (!rawCheckout) {
+      return null
+    }
+
+    const parsedCheckout = JSON.parse(rawCheckout)
+    return parsedCheckout.cart || null
+  } catch (error) {
+    console.error('Failed to restore cart from Stripe return:', error)
+    return null
+  }
+}
+
 function App() {
   // Health check
   // const [health, setHealth] = useState(null);
@@ -54,19 +91,24 @@ function App() {
   //   .then(res => setHealth(res.data.status === 'ok' ? 'OK' : 'NOT OK'))
   //   .catch(() => setHealth("NOT OK"));
   // }
+    const initialPaymentReturn = getInitialPaymentReturn()
     const [activeCategory, setActiveCategory] = useState('all')
     const [selectedItem, setSelectedItem] = useState(null)
-    const [currentView, setCurrentView] = useState('home') // 'home' | 'detail' | 'login' | 'register' | 'profile' | 'addbook' | 'mybooks' | 'cart' | 'wishlist' | 'search' | 'seller' | 'checkout' | 'congratulations' | 'orders' | 'seller-orders' | 'inbox' | 'chat' | 'admin'
+    const [currentView, setCurrentView] = useState(initialPaymentReturn ? 'checkout' : 'home') // 'home' | 'detail' | 'login' | 'register' | 'verify-email' | 'forgot-password' | 'profile' | 'addbook' | 'mybooks' | 'cart' | 'wishlist' | 'search' | 'seller' | 'checkout' | 'congratulations' | 'orders' | 'seller-orders' | 'inbox' | 'chat' | 'admin'
     const [currentUser, setCurrentUser] = useState(getStoredUser)
     const [searchQuery, setSearchQuery] = useState('')
     const [selectedSellerId, setSelectedSellerId] = useState(null)
-    const [cartForCheckout, setCartForCheckout] = useState(null)
+    const [cartForCheckout, setCartForCheckout] = useState(() => getInitialCartForCheckout(initialPaymentReturn))
     const [completedOrder, setCompletedOrder] = useState(null)
     const [selectedConversation, setSelectedConversation] = useState(null)
     const [adminInitialTab, setAdminInitialTab] = useState('dashboard')
     const [detailReturnView, setDetailReturnView] = useState('home')
     const [checkoutReturnView, setCheckoutReturnView] = useState('cart')
     const [searchFilters, setSearchFilters] = useState(DEFAULT_SEARCH_FILTERS)
+    const [paymentReturn, setPaymentReturn] = useState(initialPaymentReturn)
+    const [pendingVerificationEmail, setPendingVerificationEmail] = useState('')
+    const [pendingLoginEmail, setPendingLoginEmail] = useState('')
+    const [forgotPasswordEmail, setForgotPasswordEmail] = useState('')
     
     useEffect(() => {
       if (currentUser?._id) {
@@ -79,6 +121,15 @@ function App() {
         }
       }
     }, [currentUser?._id, currentUser?.token])
+
+    useEffect(() => {
+      if (!paymentReturn) {
+        return
+      }
+
+      window.history.replaceState({}, document.title, window.location.pathname)
+      window.scrollTo(0, 0)
+    }, [paymentReturn])
     
     const handleItemClick = (item) => {
       setSelectedItem(item)
@@ -100,12 +151,37 @@ function App() {
     }
 
     const handleShowLogin = () => {
+      setPendingLoginEmail('')
       setCurrentView('login')
       window.scrollTo(0, 0)
     }
 
     const handleShowRegister = () => {
       setCurrentView('register')
+      window.scrollTo(0, 0)
+    }
+
+    const handleShowVerifyEmail = (email = '') => {
+      setPendingVerificationEmail(email)
+      setCurrentView('verify-email')
+      window.scrollTo(0, 0)
+    }
+
+    const handleVerificationSuccess = (email = '') => {
+      setPendingLoginEmail(email)
+      setCurrentView('login')
+      window.scrollTo(0, 0)
+    }
+
+    const handleShowForgotPassword = (email = '') => {
+      setForgotPasswordEmail(email)
+      setCurrentView('forgot-password')
+      window.scrollTo(0, 0)
+    }
+
+    const handleForgotPasswordBackToLogin = (email = '') => {
+      setPendingLoginEmail(email)
+      setCurrentView('login')
       window.scrollTo(0, 0)
     }
 
@@ -236,6 +312,7 @@ function App() {
     }
 
     const handleBackFromCheckout = () => {
+      setPaymentReturn(null)
       setCurrentView(checkoutReturnView)
       window.scrollTo(0, 0)
     }
@@ -243,6 +320,7 @@ function App() {
     const handleBackFromCongratulations = () => {
       setCompletedOrder(null)
       setCartForCheckout(null)
+      setPaymentReturn(null)
       setCurrentView('home')
       window.scrollTo(0, 0)
     }
@@ -397,6 +475,10 @@ function App() {
       window.scrollTo(0, 0)
     }
 
+    const clearPaymentReturn = useCallback(() => {
+      setPaymentReturn(null)
+    }, [])
+
   return (
         <div className="min-h-screen bg-gray-50">
           <Navbar
@@ -437,6 +519,21 @@ function App() {
                   onSwitchToRegister={handleShowRegister}
                   onBackHome={handleBack}
                   onAuthSuccess={handleAuthSuccess}
+                  onForgotPassword={handleShowForgotPassword}
+                  onRequireVerification={handleShowVerifyEmail}
+                  initialEmail={pendingLoginEmail}
+                />
+            ) : currentView === 'verify-email' ? (
+                <VerifyEmailPage
+                  email={pendingVerificationEmail}
+                  onBackHome={handleBack}
+                  onSwitchToLogin={handleShowLogin}
+                  onVerificationSuccess={handleVerificationSuccess}
+                />
+            ) : currentView === 'forgot-password' ? (
+                <ForgotPasswordPage
+                  email={forgotPasswordEmail}
+                  onBackToLogin={handleForgotPasswordBackToLogin}
                 />
             ) : currentView === 'addbook' ? (
                 <AddBookPage
@@ -509,6 +606,8 @@ function App() {
                   cart={cartForCheckout}
                   onOrderSuccess={handleOrderSuccess}
                   onBack={handleBackFromCheckout}
+                  paymentReturn={paymentReturn}
+                  clearPaymentReturn={clearPaymentReturn}
                 />
             ) : currentView === 'congratulations' ? (
                 <Congratulations
@@ -539,7 +638,7 @@ function App() {
                 <RegisterPage
                   onSwitchToLogin={handleShowLogin}
                   onBackHome={handleBack}
-                  onAuthSuccess={handleAuthSuccess}
+                  onRequireVerification={handleShowVerifyEmail}
                 />
             )}
           {currentView !== 'admin' && <Footer />}

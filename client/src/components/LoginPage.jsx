@@ -1,14 +1,18 @@
-import { useState } from 'react'
-import api from '../api'
+import { useEffect, useState } from 'react'
+import { login } from '../api'
 
-function LoginPage({ onSwitchToRegister, onBackHome, onAuthSuccess }) {
+function LoginPage({ onSwitchToRegister, onBackHome, onAuthSuccess, onForgotPassword, onRequireVerification, initialEmail = '' }) {
   const [formData, setFormData] = useState({
-    email: '',
+    email: initialEmail,
     password: '',
   })
   const [error, setError] = useState('')
   const [success, setSuccess] = useState('')
   const [isSubmitting, setIsSubmitting] = useState(false)
+
+  useEffect(() => {
+    setFormData((current) => ({ ...current, email: initialEmail || '' }))
+  }, [initialEmail])
 
   const handleChange = (e) => {
     const { name, value } = e.target
@@ -27,13 +31,20 @@ function LoginPage({ onSwitchToRegister, onBackHome, onAuthSuccess }) {
 
     try {
       setIsSubmitting(true)
-      const response = await api.post('/api/auth/login', formData)
+      const response = await login(formData.email, formData.password)
       localStorage.setItem('bookshareUser', JSON.stringify(response.data))
       onAuthSuccess?.(response.data)
       setSuccess('Logged in successfully. Redirecting to home...')
       setTimeout(() => onBackHome(), 900)
     } catch (requestError) {
-      setError(requestError.response?.data?.message || 'Login failed. Please try again.')
+      const responseData = requestError.response?.data
+      if (responseData?.requiresVerification) {
+        setError(responseData.message || 'Please verify your BookShare email before logging in.')
+        onRequireVerification?.(responseData.email || formData.email)
+        return
+      }
+
+      setError(responseData?.message || 'Login failed. Please try again.')
     } finally {
       setIsSubmitting(false)
     }
@@ -97,6 +108,16 @@ function LoginPage({ onSwitchToRegister, onBackHome, onAuthSuccess }) {
                   placeholder="Enter your password"
                   className="w-full rounded-xl border border-gray-300 px-4 py-3 focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent"
                 />
+              </div>
+
+              <div className="flex justify-end">
+                <button
+                  type="button"
+                  onClick={() => onForgotPassword?.(formData.email)}
+                  className="text-sm text-orange-600 font-semibold hover:text-orange-700 transition-colors"
+                >
+                  Forgot password?
+                </button>
               </div>
 
               {error && (

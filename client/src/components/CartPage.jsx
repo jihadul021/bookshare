@@ -2,25 +2,30 @@ import { useState, useEffect } from 'react'
 import api from '../api'
 import getImageUrl from '../utils/getImageUrl'
 
-export default function CartPage({ token, onBackHome, onRequireLogin, onProceedToCheckout }) {
+export default function CartPage({ token, onBack, onBackHome, onRequireLogin, onProceedToCheckout }) {
   const [cartItems, setCartItems] = useState([])
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState('')
   const [selectedItems, setSelectedItems] = useState(new Set())
   const [totalPrice, setTotalPrice] = useState(0)
-
-  if (!token) {
-    onRequireLogin()
-    return null
-  }
+  const handleBackAction = onBack || onBackHome
 
   useEffect(() => {
+    if (!token) {
+      onRequireLogin?.()
+      return
+    }
+
     fetchCart()
-  }, [token])
+  }, [onRequireLogin, token])
 
   useEffect(() => {
     calculateTotal()
   }, [selectedItems, cartItems])
+
+  if (!token) {
+    return null
+  }
 
   const fetchCart = async () => {
     try {
@@ -132,7 +137,7 @@ export default function CartPage({ token, onBackHome, onRequireLogin, onProceedT
         {/* Header */}
         <div className="mb-8">
           <button
-            onClick={onBackHome}
+            onClick={handleBackAction}
             className="flex items-center text-gray-600 hover:text-gray-900 mb-6 transition-colors"
           >
             <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">

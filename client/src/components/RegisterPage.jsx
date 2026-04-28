@@ -1,7 +1,7 @@
 import { useState } from 'react'
-import api from '../api'
+import { register } from '../api'
 
-function RegisterPage({ onSwitchToLogin, onBackHome, onAuthSuccess }) {
+function RegisterPage({ onSwitchToLogin, onBackHome, onRequireVerification }) {
   const [formData, setFormData] = useState({
     name: '',
     gender: '',
@@ -46,11 +46,9 @@ function RegisterPage({ onSwitchToLogin, onBackHome, onAuthSuccess }) {
         email: formData.email,
         password: formData.password,
       }
-      const response = await api.post('/api/auth/register', payload)
-      localStorage.setItem('bookshareUser', JSON.stringify(response.data))
-      onAuthSuccess?.(response.data)
-      setSuccess('Registration successful. Redirecting to home...')
-      setTimeout(() => onBackHome(), 900)
+      const response = await register(payload)
+      setSuccess(response.data.message || 'Registration successful. Check your BookShare email for the OTP.')
+      setTimeout(() => onRequireVerification?.(response.data.email), 900)
     } catch (requestError) {
       console.error('[RegisterPage] Registration request failed:', requestError)
       setError(requestError.response?.data?.message || 'Registration failed. Please try again.')
@@ -73,6 +71,9 @@ function RegisterPage({ onSwitchToLogin, onBackHome, onAuthSuccess }) {
             <p className="text-gray-600 text-lg leading-relaxed">
               Discover books, connect with local readers, and build your personal reading circle.
             </p>
+            <button onClick={onBackHome} className="mt-6 text-sm text-gray-500 hover:text-gray-800 transition-colors">
+              Return home
+            </button>
           </div>
 
           <div className="bg-white rounded-3xl shadow-xl border border-gray-200 p-6 sm:p-8">

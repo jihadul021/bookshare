@@ -9,11 +9,29 @@
   margin: 0 auto;
 }
 
+.checkout-header-row {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  margin-bottom: 2rem;
+}
+
+.checkout-back-btn {
+  border: none;
+  border-radius: 999px;
+  background: #111827;
+  color: #fff;
+  padding: 0.7rem 1rem;
+  font-size: 0.95rem;
+  font-weight: 600;
+  cursor: pointer;
+}
+
 .checkout-title {
   font-size: 2.5rem;
   color: #333;
-  margin-bottom: 2rem;
-  text-align: center;
+  margin-bottom: 0;
+  text-align: left;
   font-weight: 700;
 }
 
@@ -24,6 +42,11 @@
 }
 
 @media (max-width: 768px) {
+  .checkout-header-row {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
   .checkout-grid {
     grid-template-columns: 1fr;
   }

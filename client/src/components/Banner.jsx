@@ -26,7 +26,7 @@ function Banner() {
             Join book lovers exchanging stories. Find your next great read, discover hidden gems, and connect with readers in your community.
           </p>
 
-          {/* Search Bar */}
+          {/* Search Bar
           <div className="w-full max-w-3xl bg-white p-2 rounded-2xl shadow-xl flex flex-col md:flex-row gap-2">
             <div className="flex-1 flex items-center bg-gray-100 rounded-xl px-4 py-3">
               <input
@@ -45,7 +45,7 @@ function Banner() {
             <button className="bg-orange-500 hover:bg-orange-600 text-white font-semibold py-3 px-8 rounded-xl transition-colors">
               Search
             </button>
-          </div>
+          </div> */}
 
         </div>
       </section>

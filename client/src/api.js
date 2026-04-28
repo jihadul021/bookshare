@@ -25,6 +25,11 @@ api.interceptors.request.use((config) => {
 // Auth endpoints
 export const login = (email, password) => api.post('/api/auth/login', { email, password });
 export const register = (userData) => api.post('/api/auth/register', userData);
+export const verifyEmailOtp = (email, otp) => api.post('/api/auth/verify-email', { email, otp });
+export const resendVerificationOtp = (email) => api.post('/api/auth/resend-verification-otp', { email });
+export const requestPasswordResetOtp = (email) => api.post('/api/auth/forgot-password', { email });
+export const resetPasswordWithOtp = (email, otp, password) =>
+  api.post('/api/auth/reset-password', { email, otp, password });
 
 // Book endpoints
 export const getBooks = (page, limit, category) => 
@@ -84,6 +89,12 @@ export const getAddresses = () => api.get('/api/addresses');
 export const createAddress = (addressData) => api.post('/api/addresses', addressData);
 export const updateAddress = (addressId, addressData) => api.put(`/api/addresses/${addressId}`, addressData);
 export const deleteAddress = (addressId) => api.delete(`/api/addresses/${addressId}`);
+
+// Payment endpoints
+export const createCheckoutSession = (paymentData) =>
+  api.post('/api/payment/create-checkout-session', paymentData);
+export const getCheckoutSession = (sessionId) =>
+  api.get(`/api/payment/checkout-session/${sessionId}`);
 
 // Coupon endpoints
 export const getActiveCoupons = () => api.get('/api/coupons/active');

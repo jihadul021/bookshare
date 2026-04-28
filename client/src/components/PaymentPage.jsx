@@ -1,75 +1,46 @@
 import { useState } from 'react';
-import { CardElement, useStripe, useElements } from '@stripe/react-stripe-js';
+import { createCheckoutSession } from '../api';
 
-const StripePayment = ({ amount, onPaymentSuccess, onPaymentError }) => {
-  const stripe = useStripe();
-  const elements = useElements();
+const StripePayment = ({ amount, onBeforeRedirect, onPaymentError }) => {
   const [processing, setProcessing] = useState(false);
-  const [cardError, setCardError] = useState('');
 
   const handlePay = async () => {
-    if (!stripe || !elements) return;
-
     setProcessing(true);
-    setCardError('');
 
     try {
-      // 1. Get client secret from your backend
-      const res = await fetch('/api/payment/create-payment-intent', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${JSON.parse(localStorage.getItem('bookshareUser'))?.token}`
-        },
-        body: JSON.stringify({ amount })
-      });
-
-      const { clientSecret } = await res.json();
-
-      // 2. Confirm payment with Stripe
-      const result = await stripe.confirmCardPayment(clientSecret, {
-        payment_method: {
-          card: elements.getElement(CardElement)
-        }
-      });
-
-      if (result.error) {
-        setCardError(result.error.message);
-        onPaymentError(result.error.message);
-      } else if (result.paymentIntent.status === 'succeeded') {
-        onPaymentSuccess(result.paymentIntent.id);
+      const preparedCheckout = await onBeforeRedirect?.();
+      if (!preparedCheckout) {
+        setProcessing(false);
+        return;
       }
+
+      const baseUrl = window.location.origin;
+      const response = await createCheckoutSession({
+        amount,
+        successUrl: `${baseUrl}/`,
+        cancelUrl: `${baseUrl}/`
+      });
+
+      if (!response.data?.url) {
+        throw new Error('Stripe checkout URL was not returned');
+      }
+
+      window.location.href = response.data.url;
     } catch (err) {
-      setCardError('Payment failed. Please try again.');
-      onPaymentError(err.message);
-    } finally {
+      onPaymentError?.(err.response?.data?.message || err.message || 'Payment failed. Please try again.');
       setProcessing(false);
     }
   };
 
   return (
     <div className="stripe-payment">
-      <div className="card-element-wrapper">
-        <CardElement
-          options={{
-            style: {
-              base: {
-                fontSize: '16px',
-                color: '#333',
-                '::placeholder': { color: '#aaa' }
-              }
-            }
-          }}
-        />
-      </div>
-      {cardError && <p className="error-text">{cardError}</p>}
       <button
         type="button"
         className="submit-btn"
         onClick={handlePay}
-        disabled={processing || !stripe}
+        disabled={processing}
       >
-        {processing ? 'Processing...' : `Pay ৳ ${amount.toFixed(2)}`}
+        {processing ? 'Redirecting to Stripe...' : `Pay ৳ ${amount.toFixed(2)} by Card`}
       </button>
     </div>
   );

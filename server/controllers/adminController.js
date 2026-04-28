@@ -3,6 +3,19 @@ const Book = require('../models/Book');
 const Order = require('../models/Order');
 const Message = require('../models/Message');
 
+const normalizeLegacyCardPaymentStatus = (order) => {
+  if (
+    order &&
+    order.orderType === 'purchase' &&
+    order.paymentMethod === 'card' &&
+    order.paymentStatus === 'pending'
+  ) {
+    order.paymentStatus = 'completed';
+  }
+
+  return order;
+};
+
 // Get all users (with pagination and search)
 exports.getAllUsers = async (req, res) => {
   try {
@@ -293,6 +306,8 @@ exports.getAllOrders = async (req, res) => {
       .populate('sellers.sellerId', 'name email')
       .populate('statusHistory.changedBy', 'name email role')
       .sort({ createdAt: -1 });
+
+    orders.forEach(normalizeLegacyCardPaymentStatus);
 
     res.status(200).json({
       success: true,

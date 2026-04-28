@@ -23,6 +23,21 @@ const getStatusClass = (status) => `status-pill ${status || 'pending'}`;
 
 const getItemSellerName = (item) => item.book?.seller?.name || 'Unknown seller';
 
+const getPaymentStatusLabel = (status) => {
+  const labels = {
+    completed: 'Paid',
+    pending: 'Pending',
+    failed: 'Failed'
+  };
+
+  return labels[status] || status;
+};
+
+const resolveDisplayedPaymentStatus = (order) =>
+  order?.paymentMethod === 'card' && order?.paymentStatus === 'pending'
+    ? 'completed'
+    : order?.paymentStatus;
+
 const AdminOrders = () => {
   const [orders, setOrders] = useState([]);
   const [selectedOrder, setSelectedOrder] = useState(null);
@@ -111,7 +126,7 @@ const AdminOrders = () => {
                 </div>
                 <p>{order.user?.name || order.shippingAddress?.fullName || 'Unknown customer'}</p>
                 <div className="order-summary-meta">
-                  <span>Rs. {order.totalAmount?.toLocaleString?.() || 0}</span>
+                  <span>Tk {order.totalAmount?.toLocaleString?.() || 0}</span>
                   <span>{formatDate(order.createdAt)}</span>
                 </div>
               </button>
@@ -160,11 +175,11 @@ const AdminOrders = () => {
                   <h3>Payment</h3>
                   <div className="detail-stack">
                     <span><strong>Method:</strong> {selectedOrder.paymentMethod === 'cash_on_delivery' ? 'Cash on Delivery' : 'Card'}</span>
-                    <span><strong>Payment Status:</strong> {selectedOrder.paymentStatus}</span>
-                    <span><strong>Subtotal:</strong> Rs. {selectedOrder.subtotal?.toLocaleString?.() || 0}</span>
-                    <span><strong>Discount:</strong> Rs. {selectedOrder.coupon?.discountAmount?.toLocaleString?.() || 0}</span>
-                    <span><strong>Shipping:</strong> Rs. {selectedOrder.shippingCost?.toLocaleString?.() || 0}</span>
-                    <span><strong>Total:</strong> Rs. {selectedOrder.totalAmount?.toLocaleString?.() || 0}</span>
+                    <span><strong>Payment Status:</strong> {getPaymentStatusLabel(resolveDisplayedPaymentStatus(selectedOrder))}</span>
+                    <span><strong>Subtotal:</strong> Tk {selectedOrder.subtotal?.toLocaleString?.() || 0}</span>
+                    <span><strong>Discount:</strong> Tk {selectedOrder.coupon?.discountAmount?.toLocaleString?.() || 0}</span>
+                    <span><strong>Shipping:</strong> Tk {selectedOrder.shippingCost?.toLocaleString?.() || 0}</span>
+                    <span><strong>Total:</strong> Tk {selectedOrder.totalAmount?.toLocaleString?.() || 0}</span>
                   </div>
                 </article>
 
@@ -197,7 +212,7 @@ const AdminOrders = () => {
                       <span>{item.book?.title || 'Removed book'}</span>
                       <span>{item.book?.author || '-'}</span>
                       <span>{item.quantity}</span>
-                      <span>Rs. {item.price}</span>
+                      <span>Tk {item.price}</span>
                       <span>{getItemSellerName(item)}</span>
                       <span>{item.book?.stock ?? '-'}</span>
                     </div>

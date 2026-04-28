@@ -231,7 +231,7 @@ const AdminDashboard = ({ onBack, initialTab = 'dashboard', onViewBook }) => {
                     <div className="stat-icon">💰</div>
                     <div className="stat-info">
                       <h3>Total Revenue</h3>
-                      <p className="stat-number">Rs. {(stats?.totalRevenue || 0).toLocaleString()}</p>
+                      <p className="stat-number">Tk {(stats?.totalRevenue || 0).toLocaleString()}</p>
                     </div>
                   </div>
                 </div>

@@ -187,7 +187,7 @@ const AdminCoupons = () => {
                 className="form-input"
               >
                 <option value="percentage">Percentage (%)</option>
-                <option value="fixed">Fixed Amount (Rs.)</option>
+                <option value="fixed">Fixed Amount (Tk)</option>
               </select>
             </div>
 
@@ -219,7 +219,7 @@ const AdminCoupons = () => {
 
           <div className="form-row">
             <div className="form-group">
-              <label>Minimum Order Amount (Rs.)</label>
+              <label>Minimum Order Amount (Tk)</label>
               <input
                 type="number"
                 name="minOrderAmount"
@@ -230,7 +230,7 @@ const AdminCoupons = () => {
             </div>
 
             <div className="form-group">
-              <label>Maximum Discount (Rs.)</label>
+              <label>Maximum Discount (Tk)</label>
               <input
                 type="number"
                 name="maxDiscount"
@@ -294,10 +294,10 @@ const AdminCoupons = () => {
             {coupons.map((coupon) => (
               <tr key={coupon._id}>
                 <td className="code-cell">{coupon.code}</td>
-                <td>{coupon.discountType === 'percentage' ? '%' : 'Rs.'}</td>
+                <td>{coupon.discountType === 'percentage' ? '%' : 'Tk'}</td>
                 <td>{coupon.discountValue}</td>
-                <td>Rs. {coupon.minOrderAmount}</td>
-                <td>{coupon.maxDiscount ? `Rs. ${coupon.maxDiscount}` : 'No limit'}</td>
+                <td>Tk {coupon.minOrderAmount}</td>
+                <td>{coupon.maxDiscount ? `Tk ${coupon.maxDiscount}` : 'No limit'}</td>
                 <td>
                   {coupon.maxUses
                     ? `${coupon.usedCount}/${coupon.maxUses}`

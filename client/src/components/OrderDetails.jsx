@@ -54,6 +54,53 @@ const OrderDetails = ({ onBack }) => {
     });
   };
 
+  const getPaymentStatusLabel = (status) => {
+    const labels = {
+      completed: 'Paid',
+      pending: 'Pending',
+      failed: 'Failed'
+    };
+
+    return labels[status] || status;
+  };
+
+  const canReviewBookFromOrder = (order, bookId) => {
+    if (!order || order.orderType !== 'purchase' || order.status === 'cancelled') {
+      return false;
+    }
+
+    const normalizedBookId = bookId?.toString();
+    const hasBookInOrder = order.items?.some((item) => item.book?._id?.toString() === normalizedBookId);
+
+    if (!hasBookInOrder) {
+      return false;
+    }
+
+    if (
+      order.status === 'delivered' ||
+      order.deliveredAt ||
+      order.statusHistory?.some((entry) => entry?.status === 'delivered')
+    ) {
+      return true;
+    }
+
+    return order.sellers?.some((sellerEntry) => {
+      const sellerHasBook = sellerEntry.items?.some((itemId) => itemId?.toString() === normalizedBookId);
+
+      if (!sellerHasBook) {
+        return false;
+      }
+
+      return (
+        sellerEntry.status === 'delivered' ||
+        sellerEntry.statusHistory?.some((entry) => entry?.status === 'delivered')
+      );
+    });
+  };
+
+  const hasAnyReviewableBook = (order) =>
+    order?.items?.some((orderItem) => canReviewBookFromOrder(order, orderItem.book?._id));
+
   const getStatusColor = (status) => {
     const colors = {
       pending: '#ff9800',
@@ -205,7 +252,15 @@ const OrderDetails = ({ onBack }) => {
                 </div>
                 <div className="info-item">
                   <span className="label">Payment Status</span>
-                  <span className="value">{selectedOrder.orderType === 'exchange' ? 'Not Applicable' : selectedOrder.paymentStatus}</span>
+                  <span className="value">
+                    {selectedOrder.orderType === 'exchange'
+                      ? 'Not Applicable'
+                      : getPaymentStatusLabel(
+                          selectedOrder.paymentMethod === 'card' && selectedOrder.paymentStatus === 'pending'
+                            ? 'completed'
+                            : selectedOrder.paymentStatus
+                        )}
+                  </span>
                 </div>
               </div>
             </div>
@@ -346,7 +401,7 @@ const OrderDetails = ({ onBack }) => {
               </div>
             )}
 
-            {selectedOrder.status === 'delivered' && selectedOrder.orderType === 'purchase' && (
+            {selectedOrder.orderType === 'purchase' && hasAnyReviewableBook(selectedOrder) && (
               <div className="detail-section full-width">
                 <h3>Rate Your Books</h3>
                 <div className="timeline">
@@ -356,6 +411,8 @@ const OrderDetails = ({ onBack }) => {
                         <p className="timeline-status">{orderItem.book.title}</p>
                         {hasUserReviewedBook(orderItem.book) ? (
                           <p className="timeline-reason">You already reviewed this book.</p>
+                        ) : !canReviewBookFromOrder(selectedOrder, orderItem.book._id) ? (
+                          <p className="timeline-reason">This book will be reviewable after it is marked delivered.</p>
                         ) : (
                           <>
                             <select

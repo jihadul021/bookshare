@@ -117,7 +117,7 @@ const AdminBooks = ({ onViewBook }) => {
               <div className="book-stats">
                 <div className="stat">
                   <label>Price</label>
-                  <span>Rs. {book.price}</span>
+                  <span>Tk {book.price}</span>
                 </div>
                 <div className="stat">
                   <label>Stock</label>
