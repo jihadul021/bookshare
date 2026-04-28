@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import './AdminUsers.css';
+import { buildApiUrl, getApiErrorMessage } from '../utils/apiUrl';
 
 const getAuthToken = () => {
   try {
@@ -22,7 +23,7 @@ const AdminUsers = () => {
   const fetchUsers = useCallback(async () => {
     try {
       setLoading(true);
-      let url = `/api/admin/users?page=${page}&limit=10`;
+      let url = buildApiUrl(`/api/admin/users?page=${page}&limit=10`);
       if (search) {
         url += `&search=${encodeURIComponent(search)}`;
       }
@@ -36,14 +37,16 @@ const AdminUsers = () => {
         }
       });
 
-      if (!response.ok) throw new Error('Failed to fetch users');
+      if (!response.ok) {
+        throw new Error(await getApiErrorMessage(response, 'Failed to fetch users'));
+      }
 
       const data = await response.json();
       setUsers(data.users);
       setTotalPages(data.totalPages);
       setLoading(false);
-    } catch {
-      setError('Error loading users');
+    } catch (err) {
+      setError(err.message || 'Error loading users');
       setLoading(false);
     }
   }, [page, search]);
@@ -55,18 +58,20 @@ const AdminUsers = () => {
   const handleViewProfile = async (userId) => {
     try {
       const token = getAuthToken();
-      const response = await fetch(`/api/admin/users/${userId}`, {
+      const response = await fetch(buildApiUrl(`/api/admin/users/${userId}`), {
         headers: {
           Authorization: `Bearer ${token}`
         }
       });
 
-      if (!response.ok) throw new Error('Failed to fetch user details');
+      if (!response.ok) {
+        throw new Error(await getApiErrorMessage(response, 'Failed to fetch user details'));
+      }
 
       const data = await response.json();
       setSelectedUser(data);
-    } catch {
-      setError('Error loading user details');
+    } catch (err) {
+      setError(err.message || 'Error loading user details');
     }
   };
 
@@ -74,22 +79,24 @@ const AdminUsers = () => {
     if (confirm('Are you sure you want to disable this account? All their books, orders, and pending orders will be cancelled.')) {
       try {
         const token = getAuthToken();
-        const response = await fetch(`/api/admin/users/${userId}/disable`, {
+        const response = await fetch(buildApiUrl(`/api/admin/users/${userId}/disable`), {
           method: 'PATCH',
           headers: {
             Authorization: `Bearer ${token}`
           }
         });
 
-        if (!response.ok) throw new Error('Failed to disable user');
+        if (!response.ok) {
+          throw new Error(await getApiErrorMessage(response, 'Failed to disable user'));
+        }
 
         // Refresh users list
         fetchUsers();
         if (selectedUser?.user?._id === userId) {
           handleViewProfile(userId);
         }
-      } catch {
-      setError('Error disabling user');
+      } catch (err) {
+        setError(err.message || 'Error disabling user');
       }
     }
   };
@@ -97,22 +104,24 @@ const AdminUsers = () => {
   const handleEnableUser = async (userId) => {
     try {
       const token = getAuthToken();
-      const response = await fetch(`/api/admin/users/${userId}/enable`, {
+      const response = await fetch(buildApiUrl(`/api/admin/users/${userId}/enable`), {
         method: 'PATCH',
         headers: {
           Authorization: `Bearer ${token}`
         }
       });
 
-      if (!response.ok) throw new Error('Failed to enable user');
+      if (!response.ok) {
+        throw new Error(await getApiErrorMessage(response, 'Failed to enable user'));
+      }
 
       // Refresh users list
       fetchUsers();
       if (selectedUser?.user?._id === userId) {
         handleViewProfile(userId);
       }
-    } catch {
-      setError('Error enabling user');
+    } catch (err) {
+      setError(err.message || 'Error enabling user');
     }
   };
 

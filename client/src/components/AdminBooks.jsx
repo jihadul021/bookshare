@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import getImageUrl from '../utils/getImageUrl';
 import './AdminBooks.css';
+import { buildApiUrl, getApiErrorMessage } from '../utils/apiUrl';
 
 const getAuthToken = () => {
   try {
@@ -22,7 +23,7 @@ const AdminBooks = ({ onViewBook }) => {
   const fetchBooks = useCallback(async () => {
     try {
       setLoading(true);
-      let url = `/api/admin/books?page=${page}&limit=10`;
+      let url = buildApiUrl(`/api/admin/books?page=${page}&limit=10`);
       if (search) {
         url += `&search=${encodeURIComponent(search)}`;
       }
@@ -36,14 +37,16 @@ const AdminBooks = ({ onViewBook }) => {
         }
       });
 
-      if (!response.ok) throw new Error('Failed to fetch books');
+      if (!response.ok) {
+        throw new Error(await getApiErrorMessage(response, 'Failed to fetch books'));
+      }
 
       const data = await response.json();
       setBooks(data.books);
       setTotalPages(data.totalPages);
       setLoading(false);
-    } catch {
-      setError('Error loading books');
+    } catch (err) {
+      setError(err.message || 'Error loading books');
       setLoading(false);
     }
   }, [page, search]);
@@ -60,7 +63,7 @@ const AdminBooks = ({ onViewBook }) => {
 
     try {
       const token = getAuthToken();
-      const response = await fetch(`/api/admin/books/${bookId}`, {
+      const response = await fetch(buildApiUrl(`/api/admin/books/${bookId}`), {
         method: 'DELETE',
         headers: {
           Authorization: `Bearer ${token}`
@@ -68,12 +71,12 @@ const AdminBooks = ({ onViewBook }) => {
       });
 
       if (!response.ok) {
-        throw new Error('Failed to remove book');
+        throw new Error(await getApiErrorMessage(response, 'Failed to remove book'));
       }
 
       setBooks((currentBooks) => currentBooks.filter((book) => book._id !== bookId));
-    } catch {
-      setError('Error removing book');
+    } catch (err) {
+      setError(err.message || 'Error removing book');
     }
   };
 

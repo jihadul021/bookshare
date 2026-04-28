@@ -4,6 +4,7 @@ import AdminUsers from './AdminUsers';
 import AdminBooks from './AdminBooks';
 import AdminCoupons from './AdminCoupons';
 import AdminOrders from './AdminOrders';
+import { buildApiUrl, getApiErrorMessage } from '../utils/apiUrl';
 
 const AdminDashboard = ({ onBack, initialTab = 'dashboard', onViewBook }) => {
   const [stats, setStats] = useState(null);
@@ -23,7 +24,7 @@ const AdminDashboard = ({ onBack, initialTab = 'dashboard', onViewBook }) => {
         return;
       }
 
-      const response = await fetch('/api/admin/dashboard/stats', {
+      const response = await fetch(buildApiUrl('/api/admin/dashboard/stats'), {
         headers: {
           Authorization: `Bearer ${token}`,
           'Content-Type': 'application/json'
@@ -36,8 +37,8 @@ const AdminDashboard = ({ onBack, initialTab = 'dashboard', onViewBook }) => {
           onBack?.();
           return;
         }
-        const errorData = await response.json();
-        throw new Error(errorData.message || `Failed to fetch stats: ${response.status}`);
+        const errorMessage = await getApiErrorMessage(response, `Failed to fetch stats: ${response.status}`);
+        throw new Error(errorMessage);
       }
 
       const data = await response.json();
@@ -71,7 +72,7 @@ const AdminDashboard = ({ onBack, initialTab = 'dashboard', onViewBook }) => {
           {error}
         </p>
         <p style={{ fontSize: '14px', color: '#666', marginBottom: '20px' }}>
-          Make sure the backend server is running on port 5000
+          Make sure `VITE_API_URL` points to your deployed backend API.
         </p>
         <button
           onClick={fetchDashboardStats}

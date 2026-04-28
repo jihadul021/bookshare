@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import './AdminCoupons.css';
+import { buildApiUrl, getApiErrorMessage } from '../utils/apiUrl';
 
 const getAuthToken = () => {
   try {
@@ -37,19 +38,21 @@ const AdminCoupons = () => {
       const token = getAuthToken();
       if (!token) throw new Error('No token found');
       
-      const response = await fetch('/api/coupons/all', {
+      const response = await fetch(buildApiUrl('/api/coupons/all'), {
         headers: {
           Authorization: `Bearer ${token}`
         }
       });
 
-      if (!response.ok) throw new Error('Failed to fetch coupons');
+      if (!response.ok) {
+        throw new Error(await getApiErrorMessage(response, 'Failed to fetch coupons'));
+      }
 
       const data = await response.json();
       setCoupons(data.coupons);
       setLoading(false);
     } catch (err) {
-      setError('Error loading coupons');
+      setError(err.message || 'Error loading coupons');
       setLoading(false);
     }
   };
@@ -66,7 +69,7 @@ const AdminCoupons = () => {
     e.preventDefault();
     try {
       const token = getAuthToken();
-      const response = await fetch('/api/coupons/create', {
+      const response = await fetch(buildApiUrl('/api/coupons/create'), {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -81,7 +84,9 @@ const AdminCoupons = () => {
         })
       });
 
-      if (!response.ok) throw new Error('Failed to create coupon');
+      if (!response.ok) {
+        throw new Error(await getApiErrorMessage(response, 'Failed to create coupon'));
+      }
 
       // Reset form and refresh coupons
       setFormData({
@@ -104,7 +109,7 @@ const AdminCoupons = () => {
   const handleToggleCoupon = async (couponId, currentStatus) => {
     try {
       const token = getAuthToken();
-      const response = await fetch(`/api/coupons/${couponId}`, {
+      const response = await fetch(buildApiUrl(`/api/coupons/${couponId}`), {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
@@ -113,7 +118,9 @@ const AdminCoupons = () => {
         body: JSON.stringify({ isActive: !currentStatus })
       });
 
-      if (!response.ok) throw new Error('Failed to update coupon');
+      if (!response.ok) {
+        throw new Error(await getApiErrorMessage(response, 'Failed to update coupon'));
+      }
 
       fetchCoupons();
     } catch (err) {
@@ -125,14 +132,16 @@ const AdminCoupons = () => {
     if (confirm('Are you sure you want to delete this coupon?')) {
       try {
         const token = getAuthToken();
-        const response = await fetch(`/api/coupons/${couponId}`, {
+        const response = await fetch(buildApiUrl(`/api/coupons/${couponId}`), {
           method: 'DELETE',
           headers: {
             Authorization: `Bearer ${token}`
           }
         });
 
-        if (!response.ok) throw new Error('Failed to delete coupon');
+        if (!response.ok) {
+          throw new Error(await getApiErrorMessage(response, 'Failed to delete coupon'));
+        }
 
         fetchCoupons();
       } catch (err) {

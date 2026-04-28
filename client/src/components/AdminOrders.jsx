@@ -1,5 +1,6 @@
 import React, { useCallback, useEffect, useState } from 'react';
 import './AdminOrders.css';
+import { buildApiUrl, getApiErrorMessage } from '../utils/apiUrl';
 
 const getAuthToken = () => {
   try {
@@ -49,7 +50,7 @@ const AdminOrders = () => {
     try {
       setLoading(true);
       const token = getAuthToken();
-      let url = '/api/admin/orders';
+      let url = buildApiUrl('/api/admin/orders');
       if (search) {
         url += `?search=${encodeURIComponent(search)}`;
       }
@@ -61,7 +62,7 @@ const AdminOrders = () => {
       });
 
       if (!response.ok) {
-        throw new Error('Failed to fetch orders');
+        throw new Error(await getApiErrorMessage(response, 'Failed to fetch orders'));
       }
 
       const data = await response.json();
@@ -74,8 +75,8 @@ const AdminOrders = () => {
         return data.orders?.find((order) => order._id === currentSelectedOrder._id) || data.orders?.[0] || null;
       });
       setError('');
-    } catch {
-      setError('Error loading orders');
+    } catch (err) {
+      setError(err.message || 'Error loading orders');
     } finally {
       setLoading(false);
     }
