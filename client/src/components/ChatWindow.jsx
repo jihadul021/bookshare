@@ -303,20 +303,8 @@ const ChatWindow = ({ conversation, onBack, token }) => {
         formData.append('image', selectedImage);
       }
 
-      const response = await fetch('/api/messages/send', {
-        method: 'POST',
-        headers: {
-          Authorization: `Bearer ${token}`
-        },
-        body: formData
-      });
-
-      if (!response.ok) {
-        throw new Error('Failed to send message');
-      }
-
-      const data = await response.json();
-      const newMessage = data.message;
+      const response = await sendMessage(selectedConversation._id, recipient._id, formData);
+      const newMessage = response.data.message;
 
       setMessages((prev) => {
         if (prev.some((message) => message._id === newMessage._id)) {

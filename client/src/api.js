@@ -109,8 +109,18 @@ export const getConversations = () => api.get('/api/messages/conversations');
 export const getOrCreateConversation = (participantId, bookId) => 
   api.post('/api/messages/conversations', { participantId, bookId });
 export const getMessages = (conversationId) => api.get(`/api/messages/${conversationId}`);
-export const sendMessage = (conversationId, receiverId, text) => 
-  api.post('/api/messages/send', { conversationId, receiverId, text });
+export const sendMessage = (conversationId, receiverId, payload) => {
+  if (payload instanceof FormData) {
+    return api.post('/api/messages/send', payload);
+  }
+
+  const messagePayload =
+    typeof payload === 'string'
+      ? { conversationId, receiverId, text: payload }
+      : { conversationId, receiverId, ...(payload || {}) };
+
+  return api.post('/api/messages/send', messagePayload);
+};
 export const markAsRead = (messageId) => api.put(`/api/messages/${messageId}/read`);
 export const markConversationAsRead = (conversationId) => 
   api.put(`/api/messages/conversations/${conversationId}/read`);
