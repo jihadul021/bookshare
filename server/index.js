@@ -33,7 +33,7 @@ const io = socketIo(server, {
   }
 });
 
-app.use(cors({ origin: process.env.CLIENT_URL }));
+app.use(cors({ origin: [process.env.CLIENT_URL, 'https://booksharenet.vercel.app'] }));
 // Increase JSON payload limit to 50MB
 app.use(express.json({ limit: '50mb' }));
 app.use(express.urlencoded({ limit: '50mb', extended: true }));
