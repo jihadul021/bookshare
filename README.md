@@ -2,6 +2,8 @@
 
 BookShare is a full-stack web application designed to facilitate the sharing, buying, selling, and exchanging of books. The platform supports user authentication, real-time chat, order management, book exchange requests, Stripe card payments, and an admin dashboard for managing users, books, orders, and coupons. Built with a modern React frontend and a Node.js/Express backend, BookShare provides a seamless and secure experience for both buyers and sellers.
 
+## **Live Demo:** [https://booksharenet.vercel.app/](https://booksharenet.vercel.app/) 
+
 ![BookShare](https://img.shields.io/badge/BookShare-v1.0.0-blue)
 ![React](https://img.shields.io/badge/React-Vite-61DAFB?logo=react)
 ![Node](https://img.shields.io/badge/Node.js-Express-339933?logo=node.js)
