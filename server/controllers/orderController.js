@@ -8,6 +8,7 @@ const Conversation = require('../models/Conversation');
 const Stripe = require('stripe');
 
 const stripe = Stripe(process.env.STRIPE_SECRET_KEY);
+const STRIPE_CURRENCY = 'bdt';
 
 const normalizeLegacyCardPaymentStatus = (order) => {
   if (
@@ -151,6 +152,10 @@ exports.createOrder = async (req, res) => {
 
       if (session.payment_status !== 'paid') {
         return res.status(400).json({ message: 'Card payment was not completed successfully' });
+      }
+
+      if ((session.currency || '').toLowerCase() !== STRIPE_CURRENCY) {
+        return res.status(400).json({ message: 'Card payment currency does not match the order currency' });
       }
 
       const paidAmount = (session.amount_total || 0) / 100;

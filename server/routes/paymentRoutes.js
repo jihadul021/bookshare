@@ -3,6 +3,7 @@ const router = express.Router();
 const Stripe = require('stripe');
 const stripe = Stripe(process.env.STRIPE_SECRET_KEY);
 const authMiddleware = require('../middleware/authMiddleware');
+const STRIPE_CURRENCY = 'bdt';
 
 router.post('/create-checkout-session', authMiddleware, async (req, res) => {
   try {
@@ -22,7 +23,7 @@ router.post('/create-checkout-session', authMiddleware, async (req, res) => {
       line_items: [
         {
           price_data: {
-            currency: 'usd',
+            currency: STRIPE_CURRENCY,
             product_data: {
               name: 'BookShare Order Payment'
             },
@@ -37,7 +38,8 @@ router.post('/create-checkout-session', authMiddleware, async (req, res) => {
 
     res.json({
       sessionId: session.id,
-      url: session.url
+      url: session.url,
+      currency: session.currency
     });
   } catch (err) {
     res.status(500).json({ message: err.message });
@@ -52,6 +54,7 @@ router.get('/checkout-session/:sessionId', authMiddleware, async (req, res) => {
 
     res.json({
       sessionId: session.id,
+      currency: session.currency,
       paymentStatus: session.payment_status,
       status: session.status,
       paymentIntentId: typeof session.payment_intent === 'string'
