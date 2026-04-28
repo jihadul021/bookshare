@@ -26,14 +26,36 @@ connectDB();
 
 const app = express();
 const server = http.createServer(app);
+
+const allowedOrigins = Array.from(
+  new Set(
+    [
+      process.env.CLIENT_URL,
+      ...(process.env.CLIENT_URLS || '').split(','),
+      'http://localhost:5173',
+      'https://booksharenet.vercel.app'
+    ]
+      .map((origin) => origin && origin.trim())
+      .filter(Boolean)
+  )
+);
+
+const corsOptions = {
+  origin(origin, callback) {
+    if (!origin || allowedOrigins.includes(origin)) {
+      return callback(null, true);
+    }
+
+    return callback(new Error(`Origin ${origin} is not allowed by CORS`));
+  },
+  methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS']
+};
+
 const io = socketIo(server, {
-  cors: {
-    origin: process.env.CLIENT_URL,
-    methods: ['GET', 'POST']
-  }
+  cors: corsOptions
 });
 
-app.use(cors({ origin: [process.env.CLIENT_URL, 'https://booksharenet.vercel.app'] }));
+app.use(cors(corsOptions));
 // Increase JSON payload limit to 50MB
 app.use(express.json({ limit: '50mb' }));
 app.use(express.urlencoded({ limit: '50mb', extended: true }));

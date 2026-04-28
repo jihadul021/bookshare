@@ -1,16 +1,8 @@
 import { io } from 'socket.io-client';
+import { getApiOrigin } from './utils/apiUrl';
 
 let socketInstance = null;
 let connectedUserId = null;
-
-const getSocketUrl = () => {
-  const apiUrl = import.meta.env.VITE_API_URL;
-  if (!apiUrl) {
-    return window.location.origin;
-  }
-
-  return apiUrl.replace(/\/api\/?$/, '');
-};
 
 export const connectSocket = (userId) => {
   if (!userId) {
@@ -18,7 +10,7 @@ export const connectSocket = (userId) => {
   }
 
   if (!socketInstance) {
-    socketInstance = io(getSocketUrl(), {
+    socketInstance = io(getApiOrigin(), {
       autoConnect: true
     });
   }

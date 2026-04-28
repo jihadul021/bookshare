@@ -1,8 +1,48 @@
+const DEFAULT_DEPLOYED_API_ORIGIN = 'https://bookshare-xbj2.onrender.com';
+
 const getConfiguredApiBase = () => (import.meta.env.VITE_API_URL || '').trim();
+
+export const getApiOrigin = () => {
+  const configuredApiBase = getConfiguredApiBase();
+
+  if (configuredApiBase) {
+    try {
+      return new URL(configuredApiBase).origin;
+    } catch {
+      return configuredApiBase.replace(/\/api\/?$/, '');
+    }
+  }
+
+  if (typeof window === 'undefined') {
+    return DEFAULT_DEPLOYED_API_ORIGIN;
+  }
+
+  const { hostname, origin } = window.location;
+
+  if (hostname === 'localhost' || hostname === '127.0.0.1') {
+    return origin;
+  }
+
+  if (hostname === 'booksharenet.vercel.app') {
+    return DEFAULT_DEPLOYED_API_ORIGIN;
+  }
+
+  return origin;
+};
+
+export const getApiBaseUrl = () => {
+  const configuredApiBase = getConfiguredApiBase();
+
+  if (configuredApiBase) {
+    return configuredApiBase;
+  }
+
+  return `${getApiOrigin()}/api`;
+};
 
 export const buildApiUrl = (path = '') => {
   if (!path) {
-    return getConfiguredApiBase();
+    return getApiBaseUrl();
   }
 
   if (/^https?:\/\//i.test(path)) {
@@ -10,7 +50,7 @@ export const buildApiUrl = (path = '') => {
   }
 
   const normalizedPath = path.startsWith('/') ? path : `/${path}`;
-  const apiBase = getConfiguredApiBase();
+  const apiBase = getApiBaseUrl();
 
   if (!apiBase) {
     return normalizedPath;

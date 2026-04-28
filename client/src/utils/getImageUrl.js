@@ -1,16 +1,4 @@
-const getApiBaseUrl = () => {
-  const apiUrl = import.meta.env.VITE_API_URL || '';
-
-  if (!apiUrl) {
-    return '';
-  }
-
-  try {
-    return new URL(apiUrl).origin;
-  } catch {
-    return apiUrl.replace(/\/api\/?$/, '');
-  }
-};
+import { getApiOrigin } from './apiUrl';
 
 const getImageUrl = (imagePath) => {
   if (!imagePath || typeof imagePath !== 'string') {
@@ -33,7 +21,7 @@ const getImageUrl = (imagePath) => {
   }
 
   if (trimmedPath.startsWith('/uploads/')) {
-    const apiBaseUrl = getApiBaseUrl();
+    const apiBaseUrl = getApiOrigin();
     return apiBaseUrl ? `${apiBaseUrl}${trimmedPath}` : trimmedPath;
   }
 
