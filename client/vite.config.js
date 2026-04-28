@@ -7,12 +7,12 @@ export default defineConfig({
   server: {
     proxy: {
       '/api': {
-        target: 'http://localhost:3000',
+        target: process.env.NODE_ENV === 'production' ? 'https://bookshare-xbj2.onrender.com' : 'http://localhost:3000', 
         changeOrigin: true,
         rewrite: (path) => path
       },
       '/uploads': {
-        target: 'http://localhost:3000',
+        target: process.env.NODE_ENV === 'production' ? 'https://bookshare-xbj2.onrender.com' : 'http://localhost:3000',
         changeOrigin: true
       }
     }
